@@ -1,0 +1,56 @@
+1. Generate World
+2. Await connections and initial player setup data (Player modules, etc)
+3. Enable start button after at least 2 connections
+4. Start button begins game
+
+1. Send data to all connected clients (locations of all players, locations of items, locations of physics hitboxes)
+2. Await responses from all clients (Packet Structure)
+3. If client disconnects, kill their player
+
+---------------------
+
+Player Stats/ Setup:
+
+- Each player is a circle
+- Each player has a circle radius comprised of "modules"
+    - Health module = +5 HP / 1 radius
+    - Force = +.1x bullet speed / 1 radius
+    - Dodge = +2% Dodge chance / 1 radius
+    - Damage = +.05x damage mult / 1 radius
+    - Speed = +0.1x speed mult / 1 radius
+    - Energy = +10 max starting energy and capacity / 1 radius
+    - Sword Length = +3px sword length / 1 radius
+- Each player starts by default with a radius of 4 comprised of health modules
+- Max radius is 30
+- Each player by default starts with full energy capacity at 100 energy
+- Each player starts with 50 bullets
+- Each player has a sword
+
+
+During the game:
+- With each tick, player chooses:
+    - Movement (Left, Up, Down, Right) --> They can move in 2 directions in one tick,
+    and can specify a slower speed than normal.
+        - Movement takes away energy based on distance moved
+        - If player has no energy, max speed is half of normal
+    - Shoot (Angle, projectile) / (Target, Homing_missile)
+        - Projectile speed will be calculated by multiplying the projectile's default speed
+        by the player's Force multiplier
+    - Sword (Angle)
+        - Sword will extend instantly and will linger for 5 ticks dealing a single
+        large damage hit in the direction of the attack to all enemies that it hits
+        - Sword attack cannot be repeated until it is retracted
+
+Environment:
+- Energy will spawn in the map (+25 energy per item)
+- Bullets will spawn in packs (+20 bullets)
+- High Velocity bullets will spawn in packs (+5 bullets)
+    - 3x as fast as regular bullets
+- Homing missiles (+1 missile)
+    - .5x as fast as normal bullets, follows given target
+- Stun Grenade (+1 grenade)
+    - Cancels incoming commands from players within explosion radius for 30 ticks
+- Molotov (+1 grenade)
+    - Create a damage AOE within a certain region for some time
+- Box obstacles in environment that randomly spawn. Boxes absorb bullets and cannot be moved through
+- No leaving screen bounds
