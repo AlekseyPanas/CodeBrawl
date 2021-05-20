@@ -1,4 +1,5 @@
 import pygame
+pygame.init()
 
 fps = 0
 last_fps_show = 0
