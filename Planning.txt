@@ -50,7 +50,5 @@ Environment:
     - .5x as fast as normal bullets, follows given target
 - Stun Grenade (+1 grenade)
     - Cancels incoming commands from players within explosion radius for 30 ticks
-- Molotov (+1 grenade)
-    - Create a damage AOE within a certain region for some time
 - Box obstacles in environment that randomly spawn. Boxes absorb bullets and cannot be moved through
 - No leaving screen bounds

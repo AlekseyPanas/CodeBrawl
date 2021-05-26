@@ -47,19 +47,19 @@ def is_colliding(body1, body1_center, body2, body2_center):
 
 
 # Scales a set of coordinates to the current screen size based on a divisor factor
-def cscale(*coordinate, divisor=(850, 700)):
+def cscale(*coordinate, screen_size, divisor=(1000, 900)):
     if len(coordinate) > 1:
-        return tuple([int(coordinate[x] / divisor[x % 2] * Constants.SCREEN_SIZE[x % 2]) for x in range(len(coordinate))])
+        return tuple([int(coordinate[x] / divisor[x % 2] * screen_size[x % 2]) for x in range(len(coordinate))])
     else:
-        return int(coordinate[0] / divisor[0] * Constants.SCREEN_SIZE[0])
+        return int(coordinate[0] / divisor[0] * screen_size[0])
 
 
 # Scales a set of coordinates to the current screen size based on a divisor factor. Doesn't return integers
-def posscale(*coordinate, divisor=(850, 700)):
+def posscale(*coordinate, screen_size, divisor=(1000, 900)):
     if len(coordinate) > 1:
-        return tuple([coordinate[x] / divisor[x % 2] * Constants.SCREEN_SIZE[x] for x in range(len(coordinate))])
+        return tuple([coordinate[x] / divisor[x % 2] * screen_size[x] for x in range(len(coordinate))])
     else:
-        return coordinate[0] / divisor[0] * Constants.SCREEN_SIZE[0]
+        return coordinate[0] / divisor[0] * screen_size[0]
 
 
 def load_image(path, size=None):
