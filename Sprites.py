@@ -4,6 +4,7 @@ import math
 import pygame
 import time
 import random
+import copy
 from enum import IntEnum
 
 
@@ -29,7 +30,7 @@ class Object:
     def rotate(image, rect, angle):
         """Rotate the image while keeping its center."""
         # Rotate the original image without modifying it.
-        new_image = pygame.transform.rotate(image, angle)
+        new_image = pygame.transform.rotate(image, angle).convert_alpha()
         # Get a new rect with the center of the old rect.
         rect = new_image.get_rect(center=rect.center)
         return new_image, rect
@@ -62,6 +63,102 @@ class TooManyModules(Exception):
         super().__init__("You cannot create a player with a radius of more than 30! (4 radius default + max 26 modules)")
 
 
+class Sword(Object):
+
+    SWORD_DAMAGE = 30
+    # Default length
+    SWORD_LENGTH = 35
+
+    # How fast the sword is deployed (value of render_shift towards circle center is multiplied by this every tick)
+    DEPLOYMENT_MULT = 0.8
+    SHEATH_MULT = 1.2
+
+    # How long until it begins to retract
+    DEPLOYMENT_TIME = 30
+    # How many ticks until the sword deals damage
+    HIT_DELAY = DEPLOYMENT_TIME / 5
+
+    def __init__(self, parent, angle, sword_length_add=0, dmg_mult=1.0):
+        super().__init__(None, parent.pos, -1, {})
+        self.tags.add("sword")
+
+        # Player who deployed the sword
+        self.parent = parent
+
+        # Vector in the direction of the angle based on radius of parent
+        self.vector = (math.cos(math.radians(angle)) * (parent.radius + Sword.SWORD_LENGTH / 2),
+                       -math.sin(math.radians(angle)) * (parent.radius + Sword.SWORD_LENGTH / 2))
+
+        # Sets position
+        self.update_pos()
+
+        self.render_shift = list(copy.copy(self.vector))
+
+        # The sword can only hit targets once
+        self.hit_targets = []
+
+        self.sword_length = Sword.SWORD_LENGTH + sword_length_add
+        self.sword_damage = Sword.SWORD_DAMAGE * dmg_mult
+
+        self.physics_body = Utilities.CircleBody(self.sword_length / 2)
+        self.render_body = pygame.transform.rotate(Utilities.load_image("assets/images/sword.png", size=(self.sword_length, 10)), angle).convert_alpha()
+
+        # Tracks how long it has been deployed
+        self.counter = 0
+
+        # If 2 swords clash, damage is cancelled
+        self.cancel_hit = False
+
+        # Debug circle color
+        self.col = (0, 255, 0)
+
+    def update(self, screen, game):
+        self.update_pos()
+
+        # Deploys Sword
+        if self.counter < Sword.DEPLOYMENT_TIME:
+            self.render_shift[0] *= Sword.DEPLOYMENT_MULT
+            self.render_shift[1] *= Sword.DEPLOYMENT_MULT
+        else:
+            self.render_shift[0] *= Sword.SHEATH_MULT
+            self.render_shift[1] *= Sword.SHEATH_MULT
+            if abs(self.render_shift[0]) > abs(self.vector[0]):
+                self.kill = True
+
+        self.counter += 1
+
+        # Debug color change
+        if self.counter > Sword.HIT_DELAY and not self.col == (0, 0, 255):
+            self.col = (255, 0, 0)
+
+    def update_pos(self):
+        self.pos = [self.parent.pos[0] + self.vector[0],
+                    self.parent.pos[1] + self.vector[1]]
+
+    def render(self, screen, game):
+        screen.blit(self.render_body, self.render_body.get_rect(center=(self.pos[0] - self.render_shift[0],
+                                                                        self.pos[1] - self.render_shift[1])))
+
+        pygame.draw.circle(screen, self.col, self.pos, self.physics_body.radius, width=1)
+
+    def collision_react(self, obj):
+        if not obj == self.parent and obj not in self.hit_targets:
+
+            if "ply" not in obj.tags or self.counter > Sword.HIT_DELAY:
+                self.hit_targets.append(obj)
+
+            if "sword" in obj.tags:
+                self.cancel_hit = True
+                self.col = (0, 0, 255)
+
+            if "ply" in obj.tags and self.counter > Sword.HIT_DELAY and not self.cancel_hit:
+                obj.deal_damage(self.sword_damage)
+
+    def death_procedure(self):
+        self.parent.is_sword_deployed = False
+        self.parent.sword = None
+
+
 class Player(Object):
 
     # Starting radius
@@ -69,9 +166,6 @@ class Player(Object):
 
     # Starting HP
     default_health = default_radius * 5
-
-    # Default sword length
-    sword_length = 10
 
     # Default movement speed, in pixels
     default_speed = 2
@@ -92,7 +186,10 @@ class Player(Object):
     max_radius = 30
 
     # Energy deduction multiplier (pixel distance travelled is multiplied by this value to calculte deduction)
-    ENERGY_DEDUCTION_MULT = 0.1
+    ENERGY_DEDUCTION_MULT = 0.02
+
+    # Cost to use sword
+    SWORD_ENERGY_DEDUCTION = 10
 
     def __init__(self, pos, mod_force=0, mod_dodge=0, mod_dmg=0, mod_spd=0, mod_energy=0, mod_swrd=0, mod_hp=0):
         super().__init__(None, pos, 10, {})
@@ -117,7 +214,7 @@ class Player(Object):
         self.DAMAGE_MULT = 1 + (Player.DAMAGE_PER_RADIUS * mod_dmg)
         self.SPEED = int((1 + (Player.SPEED_PER_RADIUS * mod_spd)) * Player.default_speed)
         self.MAX_ENERGY = (Player.ENERGY_PER_RADIUS * mod_energy) + Player.default_energy
-        self.SWORD_LENGTH = (Player.SWORD_PER_RADIUS * mod_swrd) + Player.sword_length
+        self.SWORD_LENGTH = Player.SWORD_PER_RADIUS * mod_swrd
 
         # Current stat trackers, initially copies of max
         self.health = self.MAX_HEALTH
@@ -128,6 +225,13 @@ class Player(Object):
 
         # Creates sprite surface
         self.render_body = pygame.Surface((self.radius * 2, self.radius * 2), pygame.SRCALPHA, 32)
+
+        # Ammo inventory where index corresponds to bullet type
+        self.ammo_bag = [50, 0, 0]
+
+        # Flag whether or not sword is in use
+        self.is_sword_deployed = False
+        self.sword = None
 
         cur_rad = self.radius
         for mod in range(len(modules)):
@@ -186,6 +290,33 @@ class Player(Object):
         # Keeps within -1, 1 bounds
         self.vel_horizontal = min(max(-1, vector_horizontal), 1)
         self.vel_vertical = min(max(-1, vector_vertical), 1)
+
+    def use_sword(self, game, angle):
+        if not self.is_sword_deployed and self.energy > 0:
+            self.is_sword_deployed = True
+
+            self.sword = Sword(self, angle, sword_length_add=self.SWORD_LENGTH, dmg_mult=self.DAMAGE_MULT)
+            game.add_sprite(self.sword)
+
+            self.energy -= Player.SWORD_ENERGY_DEDUCTION
+
+    def shoot_bullet(self, game, ammo_type, angle):
+        # Checks if ammo is available
+        if self.ammo_bag[ammo_type.value]:
+            self.ammo_bag[ammo_type.value] -= 1
+
+            # Shifts position to edge of circle
+            pos = (self.pos[0] + math.cos(math.radians(angle)) * self.radius,
+                   self.pos[1] + -math.sin(math.radians(angle)) * self.radius)
+            game.add_sprite(Bullet(copy.copy(pos), angle, ammo_type, speed_mult=self.BULLET_SPEED_MULT, dmg_mult=self.DAMAGE_MULT, shooter=self))
+
+    # Target must be object
+    def shoot_missile(self, game, target):
+        if self.ammo_bag[Bullet.BulletTypes.MISSILE.value]:
+            self.ammo_bag[Bullet.BulletTypes.MISSILE.value] -= 1
+
+            # Rocket go fly fly
+            game.add_sprite(Missile(copy.copy(self.pos), target, speed_mult=self.BULLET_SPEED_MULT, dmg_mult=self.DAMAGE_MULT, shooter=self))
 
     def update(self, screen, game):
         self.manage_movement(game)
@@ -254,11 +385,12 @@ class Player(Object):
     def collision_react(self, obj):
         pass
 
+    def death_procedure(self):
+        if self.sword is not None:
+            self.sword.kill = True
+
 
 class Bullet(Object):
-
-    # High velocity speed multiplier
-    HIGH_VEL_SPEED_MULT = 3
 
     class BulletTypes(IntEnum):
         REGULAR = 0
@@ -278,21 +410,26 @@ class Bullet(Object):
                      BulletTypes.REGULAR: 5,
                      BulletTypes.MISSILE: 15}
 
+    BULLET_SPEED = {BulletTypes.HIGH_VEL: 8,
+                    BulletTypes.REGULAR: 3,
+                    BulletTypes.MISSILE: 3}
+
     # Angle must be provided in degrees
-    def __init__(self, pos, angle, speed, bullet_type, dmg_mult=1):
+    def __init__(self, pos, angle, bullet_type, speed_mult=1.0, dmg_mult=1.0, shooter=None):
         super().__init__(None, pos, 0, {})
         self.tags.add("bullet")
+
+        # Object reference to shooter
+        self.shooter = shooter
 
         # X,Y vector with a hypotenuse of 1 (to be multiplied by speed)
         self.vector = (math.cos(math.radians(angle)), -math.sin(math.radians(angle)))
 
-        # Pixel speed of the bullet (distance change per frame)
-        self.speed = speed
-
         # Int Enum of bullet type
         self.bullet_type = bullet_type
-        if self.bullet_type == Bullet.BulletTypes.HIGH_VEL:
-            self.speed *= Bullet.HIGH_VEL_SPEED_MULT
+
+        # Pixel speed of the bullet (distance change per frame)
+        self.speed = Bullet.BULLET_SPEED[self.bullet_type] * speed_mult
 
         # Gets sprite
         self.render_body = self.get_image(angle)
@@ -306,29 +443,30 @@ class Bullet(Object):
         self.col = (255, 0, 0)
 
     def get_image(self, angle):
-        return Bullet.BULLET_IMAGES[self.bullet_type] if angle == 0 else pygame.transform.rotate(Bullet.BULLET_IMAGES[self.bullet_type], angle)
+        return Bullet.BULLET_IMAGES[self.bullet_type] if angle == 0 else pygame.transform.rotate(Bullet.BULLET_IMAGES[self.bullet_type], angle).convert_alpha()
 
     def render(self, screen, game):
         screen.blit(self.render_body, self.render_body.get_rect(center=self.pos))
         pygame.draw.circle(screen, self.col, self.pos, self.physics_body.radius, width=1)
 
     def update(self, screen, game):
-        #if Constants.tick % 50 == 0:
+        #if Constants.tick % 20 == 0:
         self.pos[0] += self.vector[0] * self.speed
         self.pos[1] += self.vector[1] * self.speed
 
         self.col = (255, 0, 0)
 
     def collision_react(self, obj):
-        # Deletes bullet upon any collision
-        self.kill = True
+        if not obj == self.shooter and not ("bullet" in obj.tags and obj.shooter == self.shooter) and not ("sword" in obj.tags and obj.parent == self.shooter):
+            # Deletes bullet upon any collision
+            self.kill = True
 
-        # Deals damage if player
-        if "ply" in obj.tags:
-            obj.deal_damage(self.damage)
+            # Deals damage if player
+            if "ply" in obj.tags:
+                obj.deal_damage(self.damage)
 
-        # Debug color change
-        self.col = (0, 255, 0)
+            # Debug color change
+            self.col = (0, 255, 0)
 
     def collision_wall_react(self):
         self.kill = True
@@ -340,10 +478,15 @@ class Bullet(Object):
 class Missile(Bullet):
 
     # Angle change per tick to face target
-    TURNABILITY = 0.5
+    TURNABILITY = 0.2
 
-    def __init__(self, pos, target_object, speed, dmg_mult=1):
-        super().__init__(pos, 0, speed, Bullet.BulletTypes.MISSILE, dmg_mult=dmg_mult)
+    MISSILE_LIFETIME = 500
+
+    def __init__(self, pos, target_object, speed_mult=1.0, dmg_mult=1.0, shooter=None):
+        super().__init__(pos, 0, Bullet.BulletTypes.MISSILE, speed_mult=speed_mult, dmg_mult=dmg_mult, shooter=shooter)
+
+        # Sets lifetime
+        self.lifetime = Missile.MISSILE_LIFETIME
 
         # Target player
         self.target = target_object

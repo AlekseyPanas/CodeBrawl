@@ -4,6 +4,7 @@ import Utilities
 import Sprites
 import math
 import time
+import random
 
 
 class Game:
@@ -13,11 +14,8 @@ class Game:
         self.screen = pygame.display.set_mode(self.SCREEN_SIZE, pygame.DOUBLEBUF)
 
         # All sprites in the game
-        self.SPRITES = [Sprites.Player((300, 300)),
-                        Sprites.Player((300, 500), mod_spd=26),
-                        Sprites.Bullet((195, 300), 0, 1, Sprites.Bullet.BulletTypes.HIGH_VEL),
-                        Sprites.Bullet((187, 300), 0, 1, Sprites.Bullet.BulletTypes.REGULAR)]
-        self.SPRITES.append(Sprites.Missile((700, 700), self.SPRITES[1], 3))
+        self.SPRITES = [Sprites.Player((300, 400), mod_hp=7, mod_swrd=8, mod_dmg=11),
+                        Sprites.Player((300, 500), mod_hp=15, mod_swrd=10)]
 
         # Sprite queues
         self.sprite_remove_queue = []
@@ -28,6 +26,9 @@ class Game:
 
         # Events list
         self.events = []
+
+        # Sorts Sprites
+        self.SPRITES = sorted(self.SPRITES, key=lambda s: s.z_order)
 
     def add_sprite(self, sprite: Sprites.Object):
         self.sprite_add_queue.append(sprite)
@@ -78,7 +79,13 @@ class Game:
 
                 # DEBUG #################################################################################
                 if "ply" in sprite1.tags:
-                    sprite1.move(vector_horizontal=math.cos(time.time()), vector_vertical=math.sin(time.time()))
+                    #sprite1.move(vector_horizontal=math.cos(time.time()), vector_vertical=math.sin(time.time()))
+
+                    if Constants.tick % 20 == 0:
+                        #sprite1.shoot_bullet(self, Sprites.Bullet.BulletTypes.REGULAR, Constants.tick)
+                        #sprite1.shoot_missile(self, random.choice(self.SPRITES))
+
+                        sprite1.use_sword(self, random.randint(1, 359))
                 # #######################################################################################
 
                 # Checks if collision with wall occured and reacts accordingly
