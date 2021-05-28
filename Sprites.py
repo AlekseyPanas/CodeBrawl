@@ -182,7 +182,7 @@ class Player(Object):
     DODGE_PER_RADIUS = 2   # Percent chance
     DAMAGE_PER_RADIUS = .1  # Multiplier
     SPEED_PER_RADIUS = .1  # Multiplier
-    ENERGY_PER_RADIUS = 10  # Adds to starting energy and max capacity for later gain
+    ENERGY_PER_RADIUS = 15  # Adds to starting energy and max capacity for later gain
     SWORD_PER_RADIUS = 3  # Pixels in length
 
     # Max radius including default
@@ -299,6 +299,17 @@ class Player(Object):
 
     def render(self, screen, game):
         screen.blit(self.render_body, self.render_body.get_rect(center=self.pos))
+
+        # Draws health bar
+        stop_angle = 90 + ((360 * self.health) / self.MAX_HEALTH)
+        pygame.draw.arc(screen, (255, 0, 0), self.render_body.get_rect(center=self.pos), math.radians(90), math.radians(stop_angle), width=2)
+
+        energy_rect = self.render_body.get_rect()
+        energy_rect.width *= 1.05
+        energy_rect.height *= 1.05
+        energy_rect.center = self.pos
+        stop_angle = 90 + ((360 * self.energy) / self.MAX_ENERGY)
+        pygame.draw.arc(screen, (0, 255, 0), energy_rect, math.radians(90), math.radians(stop_angle), width=1)
 
     # Call this method to move the player during the next update tick
     def move(self, vector_horizontal=0, vector_vertical=0):
@@ -802,7 +813,7 @@ class RegularBulletPowerup(Powerup):
         if "ply" in obj.tags:
             self.kill = True
 
-            obj.add_ammo(Bullet.BulletTypes.REGULAR, MissilePowerup.QUANTITY)
+            obj.add_ammo(Bullet.BulletTypes.REGULAR, RegularBulletPowerup.QUANTITY)
 
 
 class HighvelBulletPowerup(Powerup):
@@ -816,12 +827,12 @@ class HighvelBulletPowerup(Powerup):
         if "ply" in obj.tags:
             self.kill = True
 
-            obj.add_ammo(Bullet.BulletTypes.HIGH_VEL, MissilePowerup.QUANTITY)
+            obj.add_ammo(Bullet.BulletTypes.HIGH_VEL, HighvelBulletPowerup.QUANTITY)
 
 
 class EnergyPowerup(Powerup):
 
-    QUANTITY = 100
+    PERCENT_OF_MAX_ENERGY = .5
 
     def __init__(self, pos):
         super().__init__(Utilities.load_image("assets/images/energy_powerup.png", size=(200*1.2, 50*1.2)), pos)
@@ -830,7 +841,7 @@ class EnergyPowerup(Powerup):
         if "ply" in obj.tags:
             self.kill = True
 
-            obj.add_energy(EnergyPowerup.QUANTITY)
+            obj.add_energy(obj.MAX_ENERGY * EnergyPowerup.PERCENT_OF_MAX_ENERGY)
 
 
 class Explosion(Animation):
