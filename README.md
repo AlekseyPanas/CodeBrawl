@@ -18,7 +18,7 @@ A game made for a coding competition, more info soon.
 ### Development Progress
 
 - [ ] Pygame Server:  
-  ![0%](https://progress-bar.dev/0)
+  ![90%](https://progress-bar.dev/0)
 - [ ] Python/Rust/Java clients:  
   ![0%](https://progress-bar.dev/0)
 

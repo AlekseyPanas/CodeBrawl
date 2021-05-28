@@ -10,13 +10,8 @@ GAME.run_game()
 
 """
 - Add game map logic
-- Add cover boxes
 
 - Add server logic
 
 - build clients
-
-- Add missile trail particles
-
-- Optimize midpt collisions to use linear rectangle
 """

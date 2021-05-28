@@ -14,9 +14,14 @@ class Game:
         self.screen = pygame.display.set_mode(self.SCREEN_SIZE, pygame.DOUBLEBUF)
 
         # All sprites in the game
-        self.SPRITES = [Sprites.Player((300, 400), mod_dodge=26),
-                        Sprites.Player((300, 500), mod_swrd=26)]
-        self.SPRITES.append(Sprites.Missile((700, 700), self.SPRITES[0]))
+        self.SPRITES = [Sprites.Player((300, 400), mod_energy=10, mod_spd=10, mod_swrd=6),
+                        Sprites.Player((300, 500), mod_swrd=26),
+                        Sprites.MissilePowerup((500, 520)),
+                        Sprites.RegularBulletPowerup((540, 520)),
+                        Sprites.HighvelBulletPowerup((580, 520)),
+                        Sprites.EnergyPowerup((620, 520))]
+        #self.SPRITES.append(Sprites.Missile((700, 700), self.SPRITES[0]))
+        self.test_thingie = self.SPRITES[0]
 
         # Sprite queues
         self.sprite_remove_queue = []
@@ -74,6 +79,12 @@ class Game:
                 if event.type == pygame.QUIT:
                     self.running = False
 
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    self.test_thingie.use_sword(self, math.degrees(math.atan2(-(event.pos[1] - self.test_thingie.pos[1]), event.pos[0] - self.test_thingie.pos[0])))
+
+            self.test_thingie.move(vector_horizontal=-pygame.key.get_pressed()[pygame.K_LEFT] + pygame.key.get_pressed()[pygame.K_RIGHT],
+                                   vector_vertical=-pygame.key.get_pressed()[pygame.K_UP] + pygame.key.get_pressed()[pygame.K_DOWN])
+
             # Runs sprites
             for spr1 in range(len(self.SPRITES)):
                 sprite1 = self.SPRITES[spr1]
@@ -86,7 +97,7 @@ class Game:
                         sprite1.shoot_bullet(self, Sprites.Bullet.BulletTypes.REGULAR, Constants.tick*1.2)
                         sprite1.shoot_missile(self, random.choice(self.SPRITES))
 
-                        sprite1.use_sword(self, random.randint(1, 359))
+                        #sprite1.use_sword(self, random.randint(1, 359))
                 # #######################################################################################
 
                 # Must have physics

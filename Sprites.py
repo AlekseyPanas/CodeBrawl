@@ -289,6 +289,14 @@ class Player(Object):
             # Adds dodge indicator
             game.add_sprite(get_damage_inflate("DODGE", self.pos, is_string=True, color=(150, 150, 255)))
 
+    def add_ammo(self, ammo_type, quantity):
+        self.ammo_bag[ammo_type.value] += quantity
+
+    def add_energy(self, energy):
+        self.energy += energy
+        if self.energy > self.MAX_ENERGY:
+            self.energy = self.MAX_ENERGY
+
     def render(self, screen, game):
         screen.blit(self.render_body, self.render_body.get_rect(center=self.pos))
 
@@ -332,7 +340,7 @@ class Player(Object):
         if self.health <= 0:
             self.kill = True
 
-        #print(self.health)
+        print(self.energy)
 
     # Actually moves the player
     def manage_movement(self, game):
@@ -468,16 +476,23 @@ class Bullet(Object):
         self.col = (255, 0, 0)
 
     def collision_react(self, game, obj):
-        if not obj == self.shooter and not ("bullet" in obj.tags and obj.shooter == self.shooter) and not ("sword" in obj.tags and obj.parent == self.shooter):
-            # Deletes bullet upon any collision
-            self.kill = True
+        # Not colliding with shooter
+        if not obj == self.shooter:
+            # Not colliding with bullets shot by shooter
+            if not ("bullet" in obj.tags and obj.shooter == self.shooter):
+                # Not colliding with shooter's sword
+                if not ("sword" in obj.tags and obj.parent == self.shooter):
+                    # Not colliding with a powerup
+                    if not "pwp" in obj.tags:
+                        # Deletes bullet upon any collision
+                        self.kill = True
 
-            # Deals damage if player
-            if "ply" in obj.tags:
-                obj.deal_damage(game, self.damage)
+                        # Deals damage if player
+                        if "ply" in obj.tags:
+                            obj.deal_damage(game, self.damage)
 
-            # Debug color change
-            self.col = (0, 255, 0)
+                        # Debug color change
+                        self.col = (0, 255, 0)
 
     def collision_wall_react(self, game):
         self.kill = True
@@ -543,10 +558,19 @@ class Missile(Bullet):
         self.update_vector(self.angle)
 
         # Move
-        self.pos[0] += self.vector[0] * self.speed
-        self.pos[1] += self.vector[1] * self.speed
+        dist_x = self.vector[0] * self.speed
+        dist_y = self.vector[1] * self.speed
+        self.pos[0] += dist_x
+        self.pos[1] += dist_y
 
         self.col = (255, 0, 0)
+
+        # Spawn particle
+        if Constants.tick % 3 == 0:
+            shift_x = random.randint(-100, 100) / 100 * (self.speed / 5)
+            shift_y = random.randint(-100, 100) / 100 * (self.speed / 5)
+
+            game.add_sprite(MissileTrailParticle(copy.copy(self.pos), (-dist_x + shift_x, -dist_y + shift_y)))
 
 
 # Creates moving, rotating, fading, and inflating surfaces for visual effects
@@ -647,6 +671,15 @@ class SwordClashCircle(InflateSurface):
         super().__init__(70, 50, {}, surf, 0, 2.5, inflate_time, pos, True, initial_opacity=150)
 
 
+class MissileTrailParticle(InflateSurface):
+    def __init__(self, pos, vel):
+        surf = pygame.Surface((10, 10)).convert_alpha()
+        surf.fill((255, random.randint(100, 255), 0))
+
+        super().__init__(70, 50, {}, surf, 0.5, 1.2, random.randint(15, 30), pos, True, initial_opacity=100,
+                         angle_vel=(random.randint(-20, 20) / 10), vel=vel)
+
+
 # Geta arial bold font
 def get_arial_font_bold(size):
     return pygame.font.SysFont("Arial", size, True)
@@ -712,7 +745,7 @@ class Animation(Object):
         if self.tick % self.animation_speed == 0:
             # Calculates the sheet position of frame
             horizontal_pos = self.frame % self.sheet_frames_w
-            self.frame_pos = ((horizontal_pos if not horizontal_pos == 0 else self.sheet_frames_w + 1) - 1, int(self.frame / self.sheet_frames_w - .01))
+            self.frame_pos = ((horizontal_pos if not horizontal_pos == 0 else self.sheet_frames_w) - 1, int(self.frame / self.sheet_frames_w - .01))
 
             # Clears surface
             self.surface.fill((255, 255, 255, 0))
@@ -731,6 +764,73 @@ class Animation(Object):
     def render(self, screen, game):
         # Blits surface onto screen
         screen.blit(self.surface, self.surface.get_rect(center=self.pos))
+
+
+class Powerup(Animation):
+
+    POWERUP_RADIUS = 20
+
+    def __init__(self, sheet, pos):
+        super().__init__(None, 1, {}, (4, 1), 15, sheet, pos, 4)
+        self.tags.add("pwp")
+
+        self.physics_body = Utilities.CircleBody(Powerup.POWERUP_RADIUS)
+
+
+class MissilePowerup(Powerup):
+
+    QUANTITY = 3
+
+    def __init__(self, pos):
+        super().__init__(Utilities.load_image("assets/images/missile_powerup.png", size=(200*1.2, 50*1.2)), pos)
+
+    def collision_react(self, game, obj):
+        if "ply" in obj.tags:
+            self.kill = True
+
+            obj.add_ammo(Bullet.BulletTypes.MISSILE, MissilePowerup.QUANTITY)
+
+
+class RegularBulletPowerup(Powerup):
+
+    QUANTITY = 25
+
+    def __init__(self, pos):
+        super().__init__(Utilities.load_image("assets/images/regular_bullet_powerup.png", size=(200*1.2, 50*1.2)), pos)
+
+    def collision_react(self, game, obj):
+        if "ply" in obj.tags:
+            self.kill = True
+
+            obj.add_ammo(Bullet.BulletTypes.REGULAR, MissilePowerup.QUANTITY)
+
+
+class HighvelBulletPowerup(Powerup):
+
+    QUANTITY = 15
+
+    def __init__(self, pos):
+        super().__init__(Utilities.load_image("assets/images/highvel_bullet_powerup.png", size=(200*1.2, 50*1.2)), pos)
+
+    def collision_react(self, game, obj):
+        if "ply" in obj.tags:
+            self.kill = True
+
+            obj.add_ammo(Bullet.BulletTypes.HIGH_VEL, MissilePowerup.QUANTITY)
+
+
+class EnergyPowerup(Powerup):
+
+    QUANTITY = 100
+
+    def __init__(self, pos):
+        super().__init__(Utilities.load_image("assets/images/energy_powerup.png", size=(200*1.2, 50*1.2)), pos)
+
+    def collision_react(self, game, obj):
+        if "ply" in obj.tags:
+            self.kill = True
+
+            obj.add_energy(EnergyPowerup.QUANTITY)
 
 
 class Explosion(Animation):
