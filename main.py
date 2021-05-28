@@ -4,20 +4,11 @@ pygame.init()
 pygame.display.set_mode((1000, 900), pygame.DOUBLEBUF)
 import Game
 
-fps = 0
-last_fps_show = 0
-clock = pygame.time.Clock()
-
 GAME = Game.Game()
 GAME.run_game()
 
 
 """
-- Add inflate surface damage indicators (with DODGE when dodged)
-- Add fragmentation of player when dead
-- Add explosion animation for missile collision
-- Add some form of block animations when swords clash
-
 - Add game map logic
 - Add cover boxes
 
@@ -26,4 +17,6 @@ GAME.run_game()
 - build clients
 
 - Add missile trail particles
+
+- Optimize midpt collisions to use linear rectangle
 """

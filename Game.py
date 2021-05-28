@@ -14,8 +14,9 @@ class Game:
         self.screen = pygame.display.set_mode(self.SCREEN_SIZE, pygame.DOUBLEBUF)
 
         # All sprites in the game
-        self.SPRITES = [Sprites.Player((300, 400), mod_hp=7, mod_swrd=8, mod_dmg=11),
-                        Sprites.Player((300, 500), mod_hp=15, mod_swrd=10)]
+        self.SPRITES = [Sprites.Player((300, 400), mod_dodge=26),
+                        Sprites.Player((300, 500), mod_swrd=26)]
+        self.SPRITES.append(Sprites.Missile((700, 700), self.SPRITES[0]))
 
         # Sprite queues
         self.sprite_remove_queue = []
@@ -82,46 +83,52 @@ class Game:
                     #sprite1.move(vector_horizontal=math.cos(time.time()), vector_vertical=math.sin(time.time()))
 
                     if Constants.tick % 20 == 0:
-                        #sprite1.shoot_bullet(self, Sprites.Bullet.BulletTypes.REGULAR, Constants.tick)
-                        #sprite1.shoot_missile(self, random.choice(self.SPRITES))
+                        sprite1.shoot_bullet(self, Sprites.Bullet.BulletTypes.REGULAR, Constants.tick*1.2)
+                        sprite1.shoot_missile(self, random.choice(self.SPRITES))
 
                         sprite1.use_sword(self, random.randint(1, 359))
                 # #######################################################################################
 
-                # Checks if collision with wall occured and reacts accordingly
-                if self.is_out_of_bounds(sprite1.physics_body, sprite1.pos):
-                    sprite1.collision_wall_react()
+                # Must have physics
+                if sprite1.physics_body is not None:
 
-                else:
-                    # Collision detection optimized loop
-                    for spr2 in range(spr1 + 1, len(self.SPRITES)):
-                        sprite2 = self.SPRITES[spr2]
+                    # Checks if collision with wall occured and reacts accordingly
+                    if self.is_out_of_bounds(sprite1.physics_body, sprite1.pos):
+                        sprite1.collision_wall_react(self)
 
-                        # List of all position combinations to check
-                        sprite1_positions = [sprite1.pos]
-                        sprite2_positions = [sprite2.pos]
+                    else:
+                        # Collision detection optimized loop
+                        for spr2 in range(spr1 + 1, len(self.SPRITES)):
+                            sprite2 = self.SPRITES[spr2]
 
-                        # Bullets that are travelling super fast will be tested against an additional midpt
-                        for spr, pos_arr in ((sprite1, sprite1_positions), (sprite2, sprite2_positions)):
-                            if "bullet" in spr.tags and spr.speed > Constants.BULLET_MIDPT_SPEED_MIN:
-                                # Adds pos of bullet midway to its future pos according to its velocity
-                                pos_arr.append((spr.pos[0] + (spr.vector[0] * (spr.speed / 2)),
-                                                spr.pos[1] + (spr.vector[1] * (spr.speed / 2))))
+                            # Must have physics
+                            if sprite2.physics_body is not None:
 
-                        break_flag = False
-                        # Checks collision of sprites across all midway pts
-                        for spr1_pos in sprite1_positions:
-                            for spr2_pos in sprite2_positions:
-                                if Utilities.is_colliding(sprite1.physics_body, spr1_pos, sprite2.physics_body, spr2_pos):
-                                    # Calls reaction methods
-                                    sprite1.collision_react(sprite2)
-                                    sprite2.collision_react(sprite1)
+                                # List of all position combinations to check
+                                sprite1_positions = [sprite1.pos]
+                                sprite2_positions = [sprite2.pos]
 
-                                    # Breaks both loops
-                                    break_flag = True
-                                    break
-                            if break_flag:
-                                break
+                                # Bullets that are travelling super fast will be tested against an additional midpt
+                                for spr, pos_arr in ((sprite1, sprite1_positions), (sprite2, sprite2_positions)):
+                                    if "bullet" in spr.tags and spr.speed > Constants.BULLET_MIDPT_SPEED_MIN:
+                                        # Adds pos of bullet midway to its future pos according to its velocity
+                                        pos_arr.append((spr.pos[0] + (spr.vector[0] * (spr.speed / 2)),
+                                                        spr.pos[1] + (spr.vector[1] * (spr.speed / 2))))
+
+                                break_flag = False
+                                # Checks collision of sprites across all midway pts
+                                for spr1_pos in sprite1_positions:
+                                    for spr2_pos in sprite2_positions:
+                                        if Utilities.is_colliding(sprite1.physics_body, spr1_pos, sprite2.physics_body, spr2_pos):
+                                            # Calls reaction methods
+                                            sprite1.collision_react(self, sprite2)
+                                            sprite2.collision_react(self, sprite1)
+
+                                            # Breaks both loops
+                                            break_flag = True
+                                            break
+                                    if break_flag:
+                                        break
 
                 # Runs sprite logic
                 sprite1.run_sprite(self.screen, self)
@@ -130,7 +137,7 @@ class Game:
 
                 # Checks if sprite is dead
                 if sprite1.kill or (sprite1.lifetime is not None and sprite1.lifetime <= 0):
-                    sprite1.death_procedure()
+                    sprite1.death_procedure(self)
                     self.sprite_remove_queue.append(sprite1)
 
             # Updates display

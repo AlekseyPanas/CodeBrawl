@@ -4,7 +4,7 @@ import math
 from enum import IntEnum
 
 
-class PhysTypes:
+class PhysTypes(IntEnum):
     CIRCLE = 0
     RECT = 1
 
@@ -65,7 +65,7 @@ def posscale(*coordinate, screen_size, divisor=(1000, 900)):
 def load_image(path, size=None):
     img = pygame.image.load(path)
     if size is not None:
-        img = pygame.transform.smoothscale(img, size)
+        img = pygame.transform.smoothscale(img, (int(size[0]), int(size[1])))
     return img.convert_alpha()
 
 

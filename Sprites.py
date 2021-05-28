@@ -46,15 +46,15 @@ class Object:
         pass
 
     # Reacts to collision with obj
-    def collision_react(self, obj):
+    def collision_react(self, game, obj):
         pass
 
     # Reacts to collision with map bounds
-    def collision_wall_react(self):
+    def collision_wall_react(self, game):
         pass
 
     # Called once when sprite is resolved for deletion
-    def death_procedure(self):
+    def death_procedure(self, game):
         pass
 
 
@@ -141,7 +141,7 @@ class Sword(Object):
 
         pygame.draw.circle(screen, self.col, self.pos, self.physics_body.radius, width=1)
 
-    def collision_react(self, obj):
+    def collision_react(self, game, obj):
         if not obj == self.parent and obj not in self.hit_targets:
 
             if "ply" not in obj.tags or self.counter > Sword.HIT_DELAY:
@@ -151,10 +151,13 @@ class Sword(Object):
                 self.cancel_hit = True
                 self.col = (0, 0, 255)
 
-            if "ply" in obj.tags and self.counter > Sword.HIT_DELAY and not self.cancel_hit:
-                obj.deal_damage(self.sword_damage)
+                avg_pos = (self.pos[0] + obj.pos[0]) / 2, (self.pos[1] + obj.pos[1]) / 2
+                game.add_sprite(SwordClashCircle(avg_pos, inflate_time=random.randint(15, 30)))
 
-    def death_procedure(self):
+            if "ply" in obj.tags and self.counter > Sword.HIT_DELAY and not self.cancel_hit:
+                obj.deal_damage(game, self.sword_damage)
+
+    def death_procedure(self, game):
         self.parent.is_sword_deployed = False
         self.parent.sword = None
 
@@ -275,12 +278,16 @@ class Player(Object):
         self.vel_vertical = 0
         self.vel_horizontal = 0
 
-    def deal_damage(self, damage):
+    def deal_damage(self, game, damage):
         # Rolls dodge chance and deals damage
         if random.randint(1, 100) > self.DODGE_CHANCE:
             self.health -= damage
+
+            # Adds damage indicator
+            game.add_sprite(get_damage_inflate(damage, self.pos))
         else:
-            pass
+            # Adds dodge indicator
+            game.add_sprite(get_damage_inflate("DODGE", self.pos, is_string=True, color=(150, 150, 255)))
 
     def render(self, screen, game):
         screen.blit(self.render_body, self.render_body.get_rect(center=self.pos))
@@ -292,7 +299,7 @@ class Player(Object):
         self.vel_vertical = min(max(-1, vector_vertical), 1)
 
     def use_sword(self, game, angle):
-        if not self.is_sword_deployed and self.energy > 0:
+        if not self.is_sword_deployed and self.energy >= Player.SWORD_ENERGY_DEDUCTION:
             self.is_sword_deployed = True
 
             self.sword = Sword(self, angle, sword_length_add=self.SWORD_LENGTH, dmg_mult=self.DAMAGE_MULT)
@@ -325,7 +332,7 @@ class Player(Object):
         if self.health <= 0:
             self.kill = True
 
-        print(self.health)
+        #print(self.health)
 
     # Actually moves the player
     def manage_movement(self, game):
@@ -382,12 +389,16 @@ class Player(Object):
                 self.energy = 0
 
     # Reacts to collision with obj
-    def collision_react(self, obj):
+    def collision_react(self, game, obj):
         pass
 
-    def death_procedure(self):
+    def death_procedure(self, game):
         if self.sword is not None:
             self.sword.kill = True
+
+        # Adds animation fragments
+        for obj in fragmentate(self.render_body, self.pos):
+            game.add_sprite(obj)
 
 
 class Bullet(Object):
@@ -456,20 +467,25 @@ class Bullet(Object):
 
         self.col = (255, 0, 0)
 
-    def collision_react(self, obj):
+    def collision_react(self, game, obj):
         if not obj == self.shooter and not ("bullet" in obj.tags and obj.shooter == self.shooter) and not ("sword" in obj.tags and obj.parent == self.shooter):
             # Deletes bullet upon any collision
             self.kill = True
 
             # Deals damage if player
             if "ply" in obj.tags:
-                obj.deal_damage(self.damage)
+                obj.deal_damage(game, self.damage)
 
             # Debug color change
             self.col = (0, 255, 0)
 
-    def collision_wall_react(self):
+    def collision_wall_react(self, game):
         self.kill = True
+
+    def death_procedure(self, game):
+        # Missiles explode on death
+        if self.bullet_type == Bullet.BulletTypes.MISSILE:
+            game.add_sprite(Explosion(self.pos))
 
     def update_vector(self, angle):
         self.vector = (math.cos(math.radians(angle)), -math.sin(math.radians(angle)))
@@ -531,3 +547,194 @@ class Missile(Bullet):
         self.pos[1] += self.vector[1] * self.speed
 
         self.col = (255, 0, 0)
+
+
+# Creates moving, rotating, fading, and inflating surfaces for visual effects
+class InflateSurface(Object):
+    def __init__(self, lifetime, z_order, tags, surface, start_scale, stop_scale, scale_time, pos, fade=False,
+                 initial_opacity=255, delay_inflation=0, vel=(0, 0), angle_vel=0.0):
+        super().__init__(lifetime, pos, z_order, tags)
+
+        self.surface_rect = surface.get_rect()
+
+        self.vel = vel
+
+        self.angle = 0
+        self.angle_vel = angle_vel
+
+        self.start_scale = (self.surface_rect.w * start_scale, self.surface_rect.h * start_scale)
+        self.stop_scale = (self.surface_rect.w * stop_scale, self.surface_rect.h * stop_scale)
+        self.scale_time = scale_time
+        self.current_scale = list(copy.copy(self.start_scale))
+        self.scale_increment = ((self.stop_scale[0] - self.start_scale[0]) / self.scale_time,
+                                (self.stop_scale[1] - self.start_scale[1]) / self.scale_time)
+
+        self.surface = pygame.Surface(self.surface_rect.size, pygame.SRCALPHA, 32).convert_alpha()
+        self.surface.blit(surface, (0, 0))
+
+        self.opacity = initial_opacity
+        self.fade_increment = (self.opacity + 1) / self.scale_time
+        self.fade = fade
+
+        # Delays inflation for a given amount of time
+        self.delay_inflation = delay_inflation
+
+    def update(self, screen, game):
+        if self.delay_inflation == 0:
+            if self.current_scale[0] < self.stop_scale[0]:
+                self.current_scale[0] += self.scale_increment[0]
+                self.current_scale[1] += self.scale_increment[1]
+            if self.fade:
+                self.opacity -= self.fade_increment
+            if self.angle_vel:
+                self.angle += self.angle_vel
+            self.pos[0] += self.vel[0]
+            self.pos[1] += self.vel[1]
+
+            self.more_logic(screen, game)
+        else:
+            self.delay_inflation -= 1
+
+    def more_logic(self, screen, game):
+        pass
+
+    def render(self, screen, game):
+        if self.opacity > 0:
+            new_surf = pygame.transform.scale(self.surface, [int(x) for x in self.current_scale]).convert_alpha()
+
+            if self.angle_vel:
+                new_surf = pygame.transform.rotate(new_surf, self.angle).convert_alpha()
+
+            rect = new_surf.get_rect()
+            rect.center = self.pos
+
+            if self.fade:
+                new_surf.fill((255, 255, 255, self.opacity if self.opacity >= 0 else 0), None, pygame.BLEND_RGBA_MULT)
+
+            screen.blit(new_surf, rect)
+
+
+# Cuts the given surface in half and returns 2 flying inflating surfaces for the halves
+def fragmentate(surf, center):
+    height = surf.get_height()
+    width = surf.get_width() / 2
+
+    pos1 = center[0] - width / 2, center[1]
+    pos2 = center[0] + width / 2, center[1]
+
+    surface1 = pygame.Surface((width, height), pygame.SRCALPHA, 32)
+    surface1.blit(surf, (0, 0))
+    surface1 = surface1.convert_alpha()
+
+    surface2 = pygame.Surface((width, height), pygame.SRCALPHA, 32)
+    surface2.blit(surf, (-width, 0))
+    surface2 = surface2.convert_alpha()
+
+    return (InflateSurface(150, -1, {}, surface1, 1, 1.2, 100, pos1, fade=True,
+                           angle_vel=(random.randint(-30, 30) / 10),
+                           vel=(random.randint(-20, 20) / 10, random.randint(-20, 20) / 10)),
+            InflateSurface(150, -1, {}, surface2, 1, 1.2, 100, pos2, fade=True,
+                           angle_vel=(random.randint(-30, 30) / 10),
+                           vel=(random.randint(-20, 20) / 10, random.randint(-20, 20) / 10)))
+
+
+# When 2 swords block each other, this thing is spawned
+class SwordClashCircle(InflateSurface):
+    def __init__(self, pos, inflate_time=20):
+        surf = pygame.Surface((50, 50), pygame.SRCALPHA, 32).convert_alpha()
+        pygame.draw.circle(surf, (255, 255, 255), (25, 25), 25, 4)
+
+        super().__init__(70, 50, {}, surf, 0, 2.5, inflate_time, pos, True, initial_opacity=150)
+
+
+# Geta arial bold font
+def get_arial_font_bold(size):
+    return pygame.font.SysFont("Arial", size, True)
+
+
+# Gets a flying piece of red text indicating a damage value
+def get_damage_inflate(damage, pos, is_string=False, color=(255, 180, 180)):
+    if is_string:
+        font_size = 15
+    else:
+        font_size = int(20 + damage / 30)
+
+    dmg_surf = get_arial_font_bold(font_size).render(str(damage), True, color)
+    return InflateSurface(200, 30, {}, dmg_surf, .5, 1.5, 50, copy.copy(pos), True, vel=(random.randint(-10, 10) / 10, -2))
+
+
+class Animation(Object):
+    def __init__(self, lifetime, z_order, tags, sheet_dimensions, animation_speed, sheet, pos, frame_count, binder=None):
+        # If none is entered for lifetime, the lifetime is set to -1 iteration of the animation
+        if lifetime == -1:
+            life = frame_count * animation_speed - 1
+        else:
+            life = lifetime
+        super().__init__(life, pos, z_order, tags)
+
+        # The dimensions of the sprite sheet by frame count (width, height)
+        self.sheet_dimensions = sheet_dimensions
+        # The amount of game ticks that should pass between each frame
+        self.animation_speed = animation_speed
+
+        self.sheet_frames_w = sheet_dimensions[0]
+        self.sheet_frames_h = sheet_dimensions[1]
+
+        # The sprite sheet image
+        self.sheet = sheet
+        # Dimensions of an individual frame
+        self.frame_width = self.sheet.get_width() / self.sheet_frames_w
+        self.frame_height = self.sheet.get_height() / self.sheet_frames_h
+
+        # Counts the ticks. Used for reference in the animation calculations
+        self.tick = 0
+        # Gives the current frame number
+        self.frame = 1
+        # Gets the vertical and horizontal frame coordinates to point to the current frame
+        self.frame_pos = [0, 0]
+        # Total # of frames in sheet
+        self.frame_count = frame_count
+
+        # Refers to another object to which this one is bound. The explosion will follow the binder object
+        self.binder = binder
+
+        # Surface onto which the animation will be drawn
+        self.surface = pygame.Surface((self.frame_width, self.frame_height), pygame.SRCALPHA, 32)
+        # Calls update once to blit the first frame and resets the tick
+        self.surface.blit(self.sheet, (0, 0))
+
+    def update(self, screen, game):
+        # If bound, change position
+        if self.binder is not None:
+            self.pos = self.binder.pos
+
+        # Updates
+        if self.tick % self.animation_speed == 0:
+            # Calculates the sheet position of frame
+            horizontal_pos = self.frame % self.sheet_frames_w
+            self.frame_pos = ((horizontal_pos if not horizontal_pos == 0 else self.sheet_frames_w + 1) - 1, int(self.frame / self.sheet_frames_w - .01))
+
+            # Clears surface
+            self.surface.fill((255, 255, 255, 0))
+
+            # Resets frame when it finishes cycling the sheet
+            self.frame += 1
+            if self.frame > self.frame_count:
+                self.frame = 1
+
+            # Shifts the sheet accordingly and blits the frame onto the surface
+            self.surface.blit(self.sheet,
+                              (-self.frame_pos[0] * self.frame_width, -self.frame_pos[1] * self.frame_height))
+
+        self.tick += 1
+
+    def render(self, screen, game):
+        # Blits surface onto screen
+        screen.blit(self.surface, self.surface.get_rect(center=self.pos))
+
+
+class Explosion(Animation):
+    def __init__(self, pos):
+        super().__init__(-1, 200, {}, (8, 1), 3,
+                          Utilities.load_image("assets/images/Explosion.png", size=(8 * 50 * 2.5, 50 * 2.5)),
+                          pos, 8)
