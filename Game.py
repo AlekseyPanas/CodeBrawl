@@ -16,7 +16,7 @@ class Game:
 
         # All sprites in the game
         self.SPRITES = [Sprites.Player((300, 400), mod_spd=26),
-                        Sprites.Player((300, 500), mod_dodge=26)]
+                        Sprites.Player((300, 500), mod_hp=25, mod_dodge=1)]
         #self.SPRITES.append(Sprites.Missile((700, 700), self.SPRITES[0]))
 
         # Bullet Lag Test
@@ -109,10 +109,11 @@ class Game:
                 if "ply" in sprite1.tags:
                     #sprite1.move(vector_horizontal=math.cos(time.time()), vector_vertical=math.sin(time.time()))
 
-                    if Constants.tick % 20 == 0:
-                        sprite1.shoot_bullet(self, Sprites.Bullet.BulletTypes.REGULAR, Constants.tick*1.2)
-                        sprite1.shoot_bullet(self, Sprites.Bullet.BulletTypes.HIGH_VEL, Constants.tick * 1.2)
-                        sprite1.shoot_missile(self, random.choice(self.SPRITES))
+                    #if Constants.tick % 20 == 0:
+                    ang = math.degrees(math.atan2(-(pygame.mouse.get_pos()[1] - self.test_thingie.pos[1]), pygame.mouse.get_pos()[0] - self.test_thingie.pos[0]))
+                    sprite1.shoot_bullet(self, Sprites.Bullet.BulletTypes.REGULAR, ang)
+                    sprite1.shoot_bullet(self, Sprites.Bullet.BulletTypes.HIGH_VEL, ang)
+                    sprite1.shoot_missile(self, random.choice(self.SPRITES))
 
                         #sprite1.use_sword(self, random.randint(1, 359))
                 # #######################################################################################

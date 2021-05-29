@@ -194,6 +194,9 @@ class Player(Object):
     # Cost to use sword
     SWORD_ENERGY_DEDUCTION = 10
 
+    # Ticks that must pass between shots
+    SHOOTING_COOLDOWN = 10
+
     def __init__(self, pos, mod_force=0, mod_dodge=0, mod_dmg=0, mod_spd=0, mod_energy=0, mod_swrd=0, mod_hp=0):
         super().__init__(None, pos, 10, {})
         self.tags.add("ply")
@@ -235,6 +238,9 @@ class Player(Object):
         # Flag whether or not sword is in use
         self.is_sword_deployed = False
         self.sword = None
+
+        # Tracks shooting cooldown
+        self.shooting_cooldown = 0
 
         cur_rad = self.radius
         for mod in range(len(modules)):
@@ -328,7 +334,7 @@ class Player(Object):
 
     def shoot_bullet(self, game, ammo_type, angle):
         # Checks if ammo is available
-        if self.ammo_bag[ammo_type.value]:
+        if self.ammo_bag[ammo_type.value] and not self.shooting_cooldown:
             self.ammo_bag[ammo_type.value] -= 1
 
             # Shifts position to edge of circle
@@ -336,22 +342,31 @@ class Player(Object):
                    self.pos[1] + -math.sin(math.radians(angle)) * self.radius)
             game.add_sprite(Bullet(copy.copy(pos), angle, ammo_type, speed_mult=self.BULLET_SPEED_MULT, dmg_mult=self.DAMAGE_MULT, shooter=self))
 
+            # Sets a cooldown
+            self.shooting_cooldown = Player.SHOOTING_COOLDOWN
+
     # Target must be object
     def shoot_missile(self, game, target):
-        if self.ammo_bag[Bullet.BulletTypes.MISSILE.value]:
+        if self.ammo_bag[Bullet.BulletTypes.MISSILE.value] and not self.shooting_cooldown:
             self.ammo_bag[Bullet.BulletTypes.MISSILE.value] -= 1
 
             # Rocket go fly fly
             game.add_sprite(Missile(copy.copy(self.pos), target, speed_mult=self.BULLET_SPEED_MULT, dmg_mult=self.DAMAGE_MULT, shooter=self))
 
+            # Sets a cooldown
+            self.shooting_cooldown = Player.SHOOTING_COOLDOWN
+
     def update(self, screen, game):
+        # Moves based on velocity queue
         self.manage_movement(game)
+
+        # Decrements cooldown if active
+        if self.shooting_cooldown > 0:
+            self.shooting_cooldown -= 1
 
         # Kills if ded
         if self.health <= 0:
             self.kill = True
-
-        print(self.energy)
 
     # Actually moves the player
     def manage_movement(self, game):
@@ -436,8 +451,8 @@ class Bullet(Object):
                      BulletTypes.REGULAR: Utilities.load_image("assets/images/regular_bullet.png", size=(10, 4)),
                      BulletTypes.MISSILE: Utilities.load_image("assets/images/missile.png", size=(30, 20))}
 
-    BULLET_DAMAGE = {BulletTypes.HIGH_VEL: 7,
-                     BulletTypes.REGULAR: 5,
+    BULLET_DAMAGE = {BulletTypes.HIGH_VEL: 5,
+                     BulletTypes.REGULAR: 3,
                      BulletTypes.MISSILE: 15}
 
     BULLET_SPEED = {BulletTypes.HIGH_VEL: 8,

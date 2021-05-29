@@ -8,6 +8,10 @@ class Map:
     # Less than this many powerups on the map will prompt spawning
     SPAWN_THRESHOLD = 5
 
+    # Format is an int, as in 1000 translates to 1/1000 chance
+    SPAWN_CHANCE_PRE_THRESH = 600
+    SPAWN_CHANCE_POST_THRESH = 80
+
     class PowerupTypes(IntEnum):
         MISSILE = 0
         ENERGY = 1
@@ -45,8 +49,11 @@ class Map:
         self.spawn_positions.append((random.randint(50, 950), random.randint(50, 850)))
 
     def run_map(self, game):
+        pre_thresh_roll = random.randint(1, Map.SPAWN_CHANCE_PRE_THRESH) == 1
+        post_thresh_roll = random.randint(1, Map.SPAWN_CHANCE_POST_THRESH) == 1
+
         # Spawn resources
-        if len(game.POWERUPS) <= Map.SPAWN_THRESHOLD:
+        if (len(game.POWERUPS) <= Map.SPAWN_THRESHOLD and post_thresh_roll) or pre_thresh_roll:
 
             # Gets the winner index
             choice = random.randint(1, sum(self.draw_chances))
@@ -61,14 +68,13 @@ class Map:
                     break
 
             # Chooses a position of a formerly existing powerup to place it in near vicinity
-            print(idx_choice)
             powerup_pos_list = self.all_positions[idx_choice]
             powerup_pos_list_length = len(powerup_pos_list)
-            print(self.all_positions)
+
             pos_change_idx = random.randint(0, powerup_pos_list_length - 1)
 
-            powerup_pos_list[pos_change_idx] = (min(game.SCREEN_SIZE[0] - 50, max(50, powerup_pos_list[pos_change_idx][0] + random.randint(-20, 20))),
-                                                min(game.SCREEN_SIZE[1] + 50, max(50, powerup_pos_list[pos_change_idx][1] + random.randint(-20, 20))))
+            powerup_pos_list[pos_change_idx] = (min(game.SCREEN_SIZE[0] - 50, max(50, powerup_pos_list[pos_change_idx][0] + random.randint(-50, 50))),
+                                                min(game.SCREEN_SIZE[1] + 50, max(50, powerup_pos_list[pos_change_idx][1] + random.randint(-50, 50))))
 
             # Spawns powerup
             if Map.PowerupTypes(idx_choice) == Map.PowerupTypes.MISSILE:
