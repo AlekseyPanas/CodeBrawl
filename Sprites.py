@@ -5,6 +5,8 @@ import pygame
 import time
 import random
 import copy
+import socket
+import threading
 from enum import IntEnum
 
 
@@ -188,7 +190,7 @@ class Player(Object):
     # Max radius including default
     max_radius = 30
 
-    # Energy deduction multiplier (pixel distance travelled is multiplied by this value to calculte deduction)
+    # Energy deduction multiplier (pixel distance travelled is multiplied by this value to calculate deduction)
     ENERGY_DEDUCTION_MULT = 0.02
 
     # Cost to use sword
@@ -197,7 +199,7 @@ class Player(Object):
     # Ticks that must pass between shots
     SHOOTING_COOLDOWN = 10
 
-    def __init__(self, pos, mod_force=0, mod_dodge=0, mod_dmg=0, mod_spd=0, mod_energy=0, mod_swrd=0, mod_hp=0):
+    def __init__(self, pos, conn, addr, name="player", mod_force=0, mod_dodge=0, mod_dmg=0, mod_spd=0, mod_energy=0, mod_swrd=0, mod_hp=0):
         super().__init__(None, pos, 10, {})
         self.tags.add("ply")
 
@@ -283,6 +285,36 @@ class Player(Object):
         # Vector from -1-1 which will by multiplied by the speed to move the player horizontally or vertically
         self.vel_vertical = 0
         self.vel_horizontal = 0
+
+        # Connection and address of connection
+        self.conn = conn
+        self.addr = addr
+        # Creates thread
+        self.connection_thread = threading.Thread(target=self.run_connection)
+
+        # String name to be displayed
+        self.display_name = name
+
+    # Once game is ready to start, run this
+    def start_connection(self):
+        self.connection_thread.start()
+
+    # In charge of all communication between player client and server
+    def run_connection(self):
+        # Game has begun
+        self.conn.sendall(b"1")
+
+        while 1:
+            # Receives data
+            data = self.conn.recv(4096)
+
+            # Ends connection if connection closed on other end
+            if not data:
+                break
+
+        # Closes connection on this side
+        self.conn.close()
+        print("Connection closed:", self.addr)
 
     def deal_damage(self, game, damage):
         # Rolls dodge chance and deals damage
@@ -706,11 +738,6 @@ class MissileTrailParticle(InflateSurface):
                          angle_vel=(random.randint(-20, 20) / 10), vel=vel)
 
 
-# Geta arial bold font
-def get_arial_font_bold(size):
-    return pygame.font.SysFont("Arial", size, True)
-
-
 # Gets a flying piece of red text indicating a damage value
 def get_damage_inflate(damage, pos, is_string=False, color=(255, 180, 180)):
     if is_string:
@@ -718,7 +745,7 @@ def get_damage_inflate(damage, pos, is_string=False, color=(255, 180, 180)):
     else:
         font_size = int(20 + damage / 30)
 
-    dmg_surf = get_arial_font_bold(font_size).render(str(damage), True, color)
+    dmg_surf = Utilities.get_arial_font_bold(font_size).render(str(damage), True, color)
     return InflateSurface(200, 30, {}, dmg_surf, .5, 1.5, 50, copy.copy(pos), True, vel=(random.randint(-10, 10) / 10, -2))
 
 

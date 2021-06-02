@@ -45,8 +45,10 @@ class Map:
         for p in self.all_positions[Map.PowerupTypes.HIGHVEL.value]:
             game.add_sprite(Sprites.HighvelBulletPowerup(p))
 
-    def make_new_spawn_position(self):
-        self.spawn_positions.append((random.randint(50, 950), random.randint(50, 850)))
+    def get_new_spawn_position(self):
+        new_pos = (random.randint(50, 950), random.randint(50, 850))
+        self.spawn_positions.append(new_pos)
+        return new_pos
 
     def run_map(self, game):
         pre_thresh_roll = random.randint(1, Map.SPAWN_CHANCE_PRE_THRESH) == 1

@@ -71,3 +71,12 @@ def load_image(path, size=None):
 
 def distance(p, q):
     return math.sqrt((q[1] - p[1]) ** 2 + (q[0] - p[0]) ** 2)
+
+
+# Gets arial bold font
+def get_arial_font_bold(size):
+    return pygame.font.SysFont("Arial", size, True)
+
+
+def get_courier(size):
+    return pygame.font.SysFont("Courier New", size, True)

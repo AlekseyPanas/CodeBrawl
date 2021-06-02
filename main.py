@@ -1,5 +1,4 @@
 import pygame
-import json
 import time
 pygame.init()
 
@@ -9,61 +8,33 @@ pygame.display.set_mode((400, 700), pygame.DOUBLEBUF)
 # Imports game
 import Game
 
-# Libraries for server
-import socket
-import threading
+# Creates Game
+GAME = Game.Game()
 
-# List containing connection threads
-Conns = []
+# Runs lobby which awaits and managed connections
+GAME.run_lobby()
 
-
-# Appends new connection thread and starts it
-def add_thread():
-    global Conns
-    Conns.append(threading.Thread(target=echo_comms))
-    Conns[-1].start()
-
-
-def echo_comms():
-    conn, addr = s.accept()
-
-    # Upon connection, creates new thread to listen for new connection
-    add_thread()
-
-    print('Connected by', addr)
-    #while 1:
-    data = conn.recv(1024)
-    #if not data: break
-    #print(json.loads(data.decode("utf-8")))
-    conn.sendall(b"1")
-    #conn.close()
-    if not conn.recv(1024):
-        print('Connection closed', addr)
-
-    #while 1:
-    conn.sendall(b"FUCK")
-
-    while 1:
-        conn = 1
-
-    #conn = 1
-
-
-HOST = '0.0.0.0'                 # Symbolic name meaning all available interfaces
-PORT = 42069              # Arbitrary non-privileged port
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind((HOST, PORT))
-s.listen(1)
-
-# Adds initial thread
-add_thread()
-
-#GAME = Game.Game()
+# Starts game
 #GAME.run_game()
 
 
+# TODO: Add Button class
+# TODO: Add start button functionality in Game "run_lobby"
 """
-- Add server logic
+- Start button appears greyed out until at least 2 players connect
+- Start button, upon pressing, initiates game
+"""
+# TODO: Add unique IDs to all sprites (Parent object class)
+# TODO: Add game_data collection and sending to each frame of game (json object formation)
+# TODO: Make main loop wait until all client players respond, or until a time limit is met
+# TODO: Build Python client
+# TODO: Build Java client
+# TODO: Build C# client
 
-- build clients
-"""
+# TODO: Add Win condition and display (server closure and win screen)
+# TODO: Add player killing on disconnect
+
+# TODO: Break test the app and implement corresponding error handling/ fix bugs
+
+# TODO: Build 1v1 key controlled test game for python
+# TODO: Build 1v1 key controlled test game for java and c# (include clients)

@@ -6,6 +6,7 @@ import math
 import time
 import random
 import Map
+import server
 
 
 class Game:
@@ -15,16 +16,17 @@ class Game:
         self.screen = pygame.display.set_mode(self.SCREEN_SIZE, pygame.DOUBLEBUF)
 
         # All sprites in the game
-        self.SPRITES = [Sprites.Player((300, 400), mod_spd=26),
-                        Sprites.Player((300, 500), mod_hp=25, mod_dodge=1)]
+        #self.SPRITES = [Sprites.Player((300, 400), mod_swrd=26),  #mod_hp=10, mod_energy=6, mod_force=6, mod_spd=4),
+        #                Sprites.Player((300, 500), mod_dodge=26)]
         #self.SPRITES.append(Sprites.Missile((700, 700), self.SPRITES[0]))
+        self.SPRITES = []
 
         # Bullet Lag Test
         """for _ in range(200):
             self.SPRITES.append(Sprites.Bullet((random.randint(50, 900), random.randint(50, 900)), random.randint(0, 359),
                                                 Sprites.Bullet.BulletTypes.REGULAR))"""
 
-        self.test_thingie = self.SPRITES[0]
+        #self.test_thingie = self.SPRITES[0]
 
         # Additional sprite separation lists
         self.POWERUPS = []
@@ -32,22 +34,78 @@ class Game:
         # Sprite queues
         self.sprite_remove_queue = []
         self.sprite_add_queue = []
+        self.connected_player_queue = []
 
         # Loop flag
         self.running = True
 
         # Map object for game
         self.map = Map.Map()
-        self.map.generate_map(self)
 
         # Events list
         self.events = []
 
-        # Sorts Sprites
-        self.SPRITES = sorted(self.SPRITES, key=lambda s: s.z_order)
+        # Creates Server
+        self.server = server.Server(self)
+
+    def run_lobby(self):
+        # Screen values for lobby display
+        SCREEN_SIZE = 400, 700
+        self.screen = pygame.display.set_mode((400, 700), pygame.DOUBLEBUF)
+
+        # Constants for display
+        FONT_SIZE = 20
+        SHIFT_SPACE_MULT = 1.3
+
+        # Pre rendered surfaces of header text and underline
+        HEADER_TEXT = Utilities.get_courier(int(FONT_SIZE*1.3)).render("CONNECTED PLAYERS:", True, (0, 0, 0))
+        UNDERLINE = Utilities.get_courier(int(FONT_SIZE * 1.3)).render("------------------", True, (0, 0, 0))
+
+        lobby_loop = True
+        # Runs lobby Loop
+        while lobby_loop:
+            # Manages drawing lobby stuff
+            #####################################
+            # Clears screen
+            self.screen.fill((150, 150, 190))
+
+            # Ends loop and server upon window closure
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    lobby_loop = False
+                    self.server.shutdown_server()
+
+            # Vertical text shift as each new name appears
+            shift = 100
+
+            # Draws headers
+            self.screen.blit(HEADER_TEXT, HEADER_TEXT.get_rect(center=(SCREEN_SIZE[0]/2, 40)))
+            self.screen.blit(UNDERLINE, UNDERLINE.get_rect(center=(SCREEN_SIZE[0] / 2, 60)))
+
+            # For each queued connected player...
+            for ply in self.connected_player_queue:
+                # Render name of player (display name)
+                name_text = Utilities.get_courier(FONT_SIZE).render(ply.display_name, True, (0, 0, 150))
+
+                # Draw name based on shift
+                self.screen.blit(name_text, name_text.get_rect(center=(SCREEN_SIZE[0] / 2, shift)))
+
+                # Shift down for next name to appear lower
+                shift += FONT_SIZE * SHIFT_SPACE_MULT
+
+            # Updates display
+            pygame.display.update()
+            #####################################
+
+            # Creates new connection if ready
+            if self.server.ready_for_conn:
+                self.server.new_conn()
 
     def add_sprite(self, sprite: Sprites.Object):
         self.sprite_add_queue.append(sprite)
+
+    def add_connecting_player(self, player: Sprites.Player):
+        self.connected_player_queue.append(player)
 
     def kill_sprite(self, sprite: Sprites.Object):
         self.sprite_remove_queue.append(sprite)
@@ -70,9 +128,24 @@ class Game:
         return False
 
     def run_game(self):
+        # Variables for FPS display and tracking
         fps = 0
         last_fps_show = 0
         clock = pygame.time.Clock()
+
+        # Resizes screen to game size
+        self.screen = pygame.display.set_mode(self.SCREEN_SIZE, pygame.DOUBLEBUF)
+
+        # Generates map
+        self.map.generate_map(self)
+
+        # Sorts Sprites
+        self.SPRITES = sorted(self.SPRITES, key=lambda s: s.z_order)
+
+        # Starts all connections
+        for spr in self.SPRITES:
+            if "ply" in spr.tags:
+                spr.start_connection()
 
         while self.running:
             # Increments tick variable
@@ -92,12 +165,13 @@ class Game:
             for event in self.events:
                 if event.type == pygame.QUIT:
                     self.running = False
+                    self.server.shutdown_server()
 
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    self.test_thingie.use_sword(self, math.degrees(math.atan2(-(event.pos[1] - self.test_thingie.pos[1]), event.pos[0] - self.test_thingie.pos[0])))
+                #elif event.type == pygame.MOUSEBUTTONDOWN:
+                #    self.test_thingie.use_sword(self, math.degrees(math.atan2(-(event.pos[1] - self.test_thingie.pos[1]), event.pos[0] - self.test_thingie.pos[0])))
 
-            self.test_thingie.move(vector_horizontal=-pygame.key.get_pressed()[pygame.K_LEFT] + pygame.key.get_pressed()[pygame.K_RIGHT],
-                                   vector_vertical=-pygame.key.get_pressed()[pygame.K_UP] + pygame.key.get_pressed()[pygame.K_DOWN])
+            #self.test_thingie.move(vector_horizontal=-pygame.key.get_pressed()[pygame.K_LEFT] + pygame.key.get_pressed()[pygame.K_RIGHT],
+            #                       vector_vertical=-pygame.key.get_pressed()[pygame.K_UP] + pygame.key.get_pressed()[pygame.K_DOWN])
 
             # Counts how many times the loop ran
             fire_count = 0
@@ -110,7 +184,8 @@ class Game:
                     #sprite1.move(vector_horizontal=math.cos(time.time()), vector_vertical=math.sin(time.time()))
 
                     #if Constants.tick % 20 == 0:
-                    ang = math.degrees(math.atan2(-(pygame.mouse.get_pos()[1] - self.test_thingie.pos[1]), pygame.mouse.get_pos()[0] - self.test_thingie.pos[0]))
+                    #ang = math.degrees(math.atan2(-(pygame.mouse.get_pos()[1] - self.test_thingie.pos[1]), pygame.mouse.get_pos()[0] - self.test_thingie.pos[0]))
+                    ang = Constants.tick
                     sprite1.shoot_bullet(self, Sprites.Bullet.BulletTypes.REGULAR, ang)
                     sprite1.shoot_bullet(self, Sprites.Bullet.BulletTypes.HIGH_VEL, ang)
                     sprite1.shoot_missile(self, random.choice(self.SPRITES))

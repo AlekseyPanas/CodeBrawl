@@ -1,13 +1,16 @@
 import socket
 import json
+import random
 
 
 def setup():
-    # Change the values to set your mods!
+    # Change the values to set your mods and Name String!
     # Do not exceed a sum of 26!
     # Do not touch the key names!
 
-    return {"MOD_HEALTH": 0,
+    return {"NAME": "".join(chr(random.randint(0, 255)) for _ in range(10)),
+
+            "MOD_HEALTH": 0,
             "MOD_FORCE": 0,
             "MOD_SWORD": 0,
             "MOD_DAMAGE": 0,
@@ -49,8 +52,6 @@ class Client:
             print(response)
 
             #s.recv(2048)
-            while 1:
-                pass
             #s.close()
 
     @staticmethod
