@@ -69,6 +69,7 @@ class Server:
 
                     # Receives initial JSON data (including all MOD values and string name of player)
                     data = conn.recv(1024)
+                    print(data)
 
                     # Loads json
                     loaded_json = json.loads(data.decode("utf-8"))

@@ -18,15 +18,12 @@ GAME.run_lobby()
 if GAME.game_starting:
     GAME.run_game()
 
-# TODO: Add unique IDs to all sprites (Parent object class)
-# TODO: Add game_data collection and sending to each frame of game (json object formation)
-# TODO: Make main loop wait until all client players respond, or until a time limit is met
-# TODO: Build Python client
+# TODO: Add failed commands notification
+
 # TODO: Build Java client
 # TODO: Build C# client
 
 # TODO: Add Win condition and display (server closure and win screen)
-# TODO: Add player killing on disconnect
 
 # TODO: Break test the app and implement corresponding error handling/ fix bugs
 

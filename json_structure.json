@@ -11,6 +11,7 @@
             "radius": 10,
             "health": 20,
             "energy": 100,
+            "shoot_cooldown": 0,
             "regular_bullet_ammo": 0,
             "highvel_bullet_ammo": 0,
             "missile_bullet_ammo": 0
@@ -19,8 +20,7 @@
 
     "command_success": {
         "movement": true,
-        "shoot_bullet": true,
-        "shoot_missile": true,
+        "shoot_ammo": true,
         "use_sword": true
     },
 
@@ -81,3 +81,22 @@
     ]
 }
 
+/***********************************/
+/* Structure for commands */
+
+{
+    "is_movement_command": false,
+    "movement_command_vectors": [0, 0],
+
+    "is_shoot_regular_bullet_command": false,
+    "shoot_regular_bullet_angle": 0,
+
+    "is_shoot_highvel_bullet_command": false,
+    "shoot_highvel_bullet_angle": 0,
+
+    "is_shoot_missile_command": false,
+    "shoot_missile_target_id": 0,
+
+    "is_use_sword_command": false,
+    "use_sword_angle": 0
+}

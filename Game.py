@@ -206,6 +206,47 @@ class Game:
                 spr.start_connection()
 
         while self.running:
+            PLAYERS = [spr for spr in self.SPRITES if "ply" in spr.tags]
+
+            # Awaits commands from all players (skips first tick)
+            if Constants.tick:
+                valid = False
+                while not valid:
+                    print("STILLWAITING")
+                    valid = True
+
+                    # If any player has not received their commands, breaks and waits
+                    for spr in PLAYERS:
+                        if not spr.has_received_commands:
+                            valid = False
+                            break
+            print("----------------------------------------------")
+
+            if Constants.tick:
+                # Executes commands
+                for spr in PLAYERS:
+                    if spr.commands_data["is_movement_command"]:
+                        vec = spr.commands_data["movement_command_vectors"]
+
+                        spr.move(vector_horizontal=vec[0], vector_vertical=vec[1])
+
+                    if spr.commands_data["is_shoot_regular_bullet_command"]:
+                        spr.shoot_bullet(self, Sprites.Bullet.BulletTypes.REGULAR, spr.commands_data["shoot_regular_bullet_angle"])
+
+                    if spr.commands_data["is_shoot_highvel_bullet_command"]:
+                        spr.shoot_bullet(self, Sprites.Bullet.BulletTypes.HIGH_VEL, spr.commands_data["shoot_highvel_bullet_angle"])
+
+                    if spr.commands_data["is_shoot_missile_command"]:
+                        target_player = [ply for ply in PLAYERS if ply.id == spr.commands_data["shoot_missile_target_id"]]
+                        if len(target_player):
+                            spr.shoot_missile(self, target_player[0])
+                        else:
+                            # COMMAND FAILED BECAUSE PLAYER NOT FOUND
+                            pass
+
+                    if spr.commands_data["is_use_sword_command"]:
+                        spr.use_sword(self, spr.commands_data["use_sword_angle"])
+
             # Increments tick variable
             Constants.tick += 1
 
@@ -321,10 +362,47 @@ class Game:
                 for spr in self.sprite_remove_queue:
                     if spr in self.SPRITES:
                         self.SPRITES.remove(spr)
+
+                        # Removes sprite from json game data
+                        if "ply" in spr.tags:
+                            self.game_data_manager.remove_player(spr)
+                        elif "bullet" in spr.tags:
+                            if spr.bullet_type == Sprites.Bullet.BulletTypes.REGULAR:
+                                self.game_data_manager.remove_regular_bullet(spr)
+                            elif spr.bullet_type == Sprites.Bullet.BulletTypes.HIGH_VEL:
+                                self.game_data_manager.remove_highvel_bullet(spr)
+                            elif spr.bullet_type == Sprites.Bullet.BulletTypes.MISSILE:
+                                self.game_data_manager.remove_missile(spr)
+                        elif "sword" in spr.tags:
+                            self.game_data_manager.remove_sword(spr)
+                        elif "pwp" in spr.tags:
+                            self.game_data_manager.remove_powerup(spr)
+
                     if spr in self.POWERUPS:
                         self.POWERUPS.remove(spr)
                 # Clears queue
                 self.sprite_remove_queue = []
+
+            # Updates game data
+            for spr in self.SPRITES:
+                if "ply" in spr.tags:
+                    self.game_data_manager.set_player(spr)
+                elif "bullet" in spr.tags:
+                    if spr.bullet_type == Sprites.Bullet.BulletTypes.REGULAR:
+                        self.game_data_manager.set_regular_bullet(spr)
+                    elif spr.bullet_type == Sprites.Bullet.BulletTypes.HIGH_VEL:
+                        self.game_data_manager.set_highvel_bullet(spr)
+                    elif spr.bullet_type == Sprites.Bullet.BulletTypes.MISSILE:
+                        self.game_data_manager.set_missile(spr)
+                elif "sword" in spr.tags:
+                    self.game_data_manager.set_sword(spr)
+                elif "pwp" in spr.tags:
+                    self.game_data_manager.set_powerup(spr)
+
+            # Sends out game data
+            for ply in PLAYERS:
+                ply.game_data = self.game_data_manager.get_game_data_bytes(True, True, True, ply.id)
+                ply.is_ready = True
 
             # sets fps to a variable. can be set to caption any time for testing.
             last_fps_show += 1

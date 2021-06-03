@@ -12,15 +12,14 @@ class GameDataManager:
 
             "command_success": {
                 "movement": True,
-                "shoot_bullet": True,
-                "shoot_missile": True,
+                "shoot_ammo": True,
                 "use_sword": True
             },
 
             "regular_bullets": [], "highvel_bullets": [], "missiles": [], "swords": [], "powerups": []
         }
 
-    def get_game_data(self, movement_success: bool, shoot_success: bool, missile_success: bool, sword_success: bool,
+    def get_game_data_bytes(self, movement_success: bool, shoot_success: bool, sword_success: bool,
                       player_id: int):
         # Sets is_you flag to True for given player
         for ply in self.game_data["players"]:
@@ -30,11 +29,10 @@ class GameDataManager:
         # Sets success values
         self.game_data["command_success"]["movement"] = movement_success
         self.game_data["command_success"]["shoot_bullet"] = shoot_success
-        self.game_data["command_success"]["shoot_missile"] = missile_success
         self.game_data["command_success"]["use_sword"] = sword_success
 
         # Gives data
-        return self.game_data
+        return bytes(json.dumps(self.game_data, separators=(',', ':')), "utf-8")
 
     # Adds or updates player object
     def set_player(self, obj):
@@ -50,6 +48,7 @@ class GameDataManager:
                     "radius": obj.radius,
                     "health": obj.health,
                     "energy": obj.energy,
+                    "shoot_cooldown": obj.shooting_cooldown,
                     "regular_bullet_ammo": obj.ammo_bag[Sprites.Bullet.BulletTypes.REGULAR.value],
                     "highvel_bullet_ammo": obj.ammo_bag[Sprites.Bullet.BulletTypes.HIGH_VEL.value],
                     "missile_bullet_ammo": obj.ammo_bag[Sprites.Bullet.BulletTypes.MISSILE.value]
@@ -67,6 +66,7 @@ class GameDataManager:
                     itm["regular_bullet_ammo"] = obj.ammo_bag[Sprites.Bullet.BulletTypes.REGULAR.value]
                     itm["highvel_bullet_ammo"] = obj.ammo_bag[Sprites.Bullet.BulletTypes.HIGH_VEL.value]
                     itm["missile_bullet_ammo"] = obj.ammo_bag[Sprites.Bullet.BulletTypes.MISSILE.value]
+                    itm["shooting_cooldown"] = obj.shooting_cooldown
 
                     break
 
@@ -189,7 +189,7 @@ class GameDataManager:
         remove_index = None
 
         for idx in range(len(arr)):
-            if arr["id"] == id:
+            if arr[idx]["id"] == id:
                 remove_index = idx
                 break
 

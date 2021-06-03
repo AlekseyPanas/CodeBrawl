@@ -8,6 +8,7 @@ import copy
 import socket
 import threading
 import Map
+import json
 from enum import IntEnum
 
 
@@ -307,9 +308,14 @@ class Player(Object):
         self.connection_thread = threading.Thread(target=self.run_connection)
 
         # Game data reference variables
-        self.game_data = {}
+        self.game_data = None
         # When new game data is ready, sets to true to be send to clients
         self.is_ready = False
+
+        # Commands data received from client
+        self.commands_data = {}
+        # Flag for data
+        self.has_received_commands = False
 
     # Once game is ready to start, run this
     def start_connection(self):
@@ -326,12 +332,17 @@ class Player(Object):
                 pass
 
             # Sends game data
-            self.conn.sendall(b"sample_data")
+            self.conn.sendall(self.game_data)
             self.is_ready = False
 
             # Receives player commands
             try:
                 data = self.conn.recv(4096)
+
+                # Sets player commands in parsed json format
+                self.commands_data = json.loads(data.decode("utf-8"))
+                # Sets flag
+                self.has_received_commands = True
             except:
                 # If an error occurs, it means the connection has been somehow terminated
                 break
