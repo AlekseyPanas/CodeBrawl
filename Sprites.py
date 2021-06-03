@@ -7,6 +7,7 @@ import random
 import copy
 import socket
 import threading
+import Map
 from enum import IntEnum
 
 
@@ -27,6 +28,15 @@ class Object:
         # Separate physics from appearance
         self.render_body = None
         self.physics_body = None
+
+        # Integer identification of object
+        self.id = -1
+
+        # Boolean used by game data manager to see if object has been added to json
+        self.added_to_json = False
+
+    def set_id(self, id):
+        self.id = id
 
     @staticmethod
     def rotate(image, rect, angle):
@@ -96,7 +106,7 @@ class Sword(Object):
 
         self.render_shift = list(copy.copy(self.vector))
 
-        # The sword can only hit targets once
+        # The sword can only hit targets once (tracks which targets were already hit)
         self.hit_targets = []
 
         self.sword_length = Sword.SWORD_LENGTH + sword_length_add
@@ -239,6 +249,7 @@ class Player(Object):
 
         # Flag whether or not sword is in use
         self.is_sword_deployed = False
+        # Sword object reference
         self.sword = None
 
         # Tracks shooting cooldown
@@ -286,14 +297,19 @@ class Player(Object):
         self.vel_vertical = 0
         self.vel_horizontal = 0
 
+        # String name to be displayed
+        self.display_name = name
+
         # Connection and address of connection
         self.conn = conn
         self.addr = addr
         # Creates thread
         self.connection_thread = threading.Thread(target=self.run_connection)
 
-        # String name to be displayed
-        self.display_name = name
+        # Game data reference variables
+        self.game_data = {}
+        # When new game data is ready, sets to true to be send to clients
+        self.is_ready = False
 
     # Once game is ready to start, run this
     def start_connection(self):
@@ -305,8 +321,20 @@ class Player(Object):
         self.conn.sendall(b"1")
 
         while 1:
-            # Receives data
-            data = self.conn.recv(4096)
+            # Awaits game data update
+            while not self.is_ready:
+                pass
+
+            # Sends game data
+            self.conn.sendall(b"sample_data")
+            self.is_ready = False
+
+            # Receives player commands
+            try:
+                data = self.conn.recv(4096)
+            except:
+                # If an error occurs, it means the connection has been somehow terminated
+                break
 
             # Ends connection if connection closed on other end
             if not data:
@@ -315,6 +343,9 @@ class Player(Object):
         # Closes connection on this side
         self.conn.close()
         print("Connection closed:", self.addr)
+
+        # Kills player
+        self.kill = True
 
     def deal_damage(self, game, damage):
         # Rolls dodge chance and deals damage
@@ -582,6 +613,8 @@ class Missile(Bullet):
 
         # Angles missile in direction of target
         self.angle = self.get_proposed_angle()
+        # Sets up vector
+        self.update_vector(self.angle)
 
     def render(self, screen, game):
         # Rotates image
@@ -610,11 +643,6 @@ class Missile(Bullet):
         return proposed_angle
 
     def update(self, screen, game):
-        # Face target
-        self.fixate_target()
-        # New vector
-        self.update_vector(self.angle)
-
         # Move
         dist_x = self.vector[0] * self.speed
         dist_y = self.vector[1] * self.speed
@@ -629,6 +657,11 @@ class Missile(Bullet):
             shift_y = random.randint(-100, 100) / 100 * (self.speed / 5)
 
             game.add_sprite(MissileTrailParticle(copy.copy(self.pos), (-dist_x + shift_x, -dist_y + shift_y)))
+
+        # Face target
+        self.fixate_target()
+        # New vector
+        self.update_vector(self.angle)
 
 
 # Creates moving, rotating, fading, and inflating surfaces for visual effects
@@ -823,11 +856,13 @@ class Powerup(Animation):
 
     POWERUP_RADIUS = 20
 
-    def __init__(self, sheet, pos):
+    def __init__(self, sheet, pos, powerup_type: Map.Map.PowerupTypes):
         super().__init__(None, 1, {}, (4, 1), 15, sheet, pos, 4)
         self.tags.add("pwp")
 
         self.physics_body = Utilities.CircleBody(Powerup.POWERUP_RADIUS)
+
+        self.powerup_type = powerup_type
 
 
 class MissilePowerup(Powerup):
@@ -835,7 +870,8 @@ class MissilePowerup(Powerup):
     QUANTITY = 3
 
     def __init__(self, pos):
-        super().__init__(Utilities.load_image("assets/images/missile_powerup.png", size=(200*1.2, 50*1.2)), pos)
+        super().__init__(Utilities.load_image("assets/images/missile_powerup.png", size=(200*1.2, 50*1.2)), pos,
+                         Map.Map.PowerupTypes.MISSILE)
 
     def collision_react(self, game, obj):
         if "ply" in obj.tags:
@@ -849,7 +885,8 @@ class RegularBulletPowerup(Powerup):
     QUANTITY = 25
 
     def __init__(self, pos):
-        super().__init__(Utilities.load_image("assets/images/regular_bullet_powerup.png", size=(200*1.2, 50*1.2)), pos)
+        super().__init__(Utilities.load_image("assets/images/regular_bullet_powerup.png", size=(200*1.2, 50*1.2)), pos,
+                         Map.Map.PowerupTypes.REGULAR)
 
     def collision_react(self, game, obj):
         if "ply" in obj.tags:
@@ -863,7 +900,8 @@ class HighvelBulletPowerup(Powerup):
     QUANTITY = 15
 
     def __init__(self, pos):
-        super().__init__(Utilities.load_image("assets/images/highvel_bullet_powerup.png", size=(200*1.2, 50*1.2)), pos)
+        super().__init__(Utilities.load_image("assets/images/highvel_bullet_powerup.png", size=(200*1.2, 50*1.2)), pos,
+                         Map.Map.PowerupTypes.HIGHVEL)
 
     def collision_react(self, game, obj):
         if "ply" in obj.tags:
@@ -877,7 +915,8 @@ class EnergyPowerup(Powerup):
     PERCENT_OF_MAX_ENERGY = .5
 
     def __init__(self, pos):
-        super().__init__(Utilities.load_image("assets/images/energy_powerup.png", size=(200*1.2, 50*1.2)), pos)
+        super().__init__(Utilities.load_image("assets/images/energy_powerup.png", size=(200*1.2, 50*1.2)), pos,
+                         Map.Map.PowerupTypes.ENERGY)
 
     def collision_react(self, game, obj):
         if "ply" in obj.tags:

@@ -7,17 +7,20 @@ import time
 import random
 import Map
 import server
+import Button
+import GameData
 
 
 class Game:
+
     def __init__(self, screen_width=1000):
         # Screen info
         self.SCREEN_SIZE = int(screen_width), int(screen_width * Constants.SCREEN_WIDTH2HEIGHT)
         self.screen = pygame.display.set_mode(self.SCREEN_SIZE, pygame.DOUBLEBUF)
 
         # All sprites in the game
-        #self.SPRITES = [Sprites.Player((300, 400), mod_swrd=26),  #mod_hp=10, mod_energy=6, mod_force=6, mod_spd=4),
-        #                Sprites.Player((300, 500), mod_dodge=26)]
+        #self.SPRITES = [Sprites.Player((300, 400), 0, 0, mod_swrd=26),  #mod_hp=10, mod_energy=6, mod_force=6, mod_spd=4),
+        #                Sprites.Player((300, 500), 0, 0, mod_dodge=26)]
         #self.SPRITES.append(Sprites.Missile((700, 700), self.SPRITES[0]))
         self.SPRITES = []
 
@@ -30,6 +33,9 @@ class Game:
 
         # Additional sprite separation lists
         self.POWERUPS = []
+
+        # Sprite ID indexer
+        self.next_available_id = 0
 
         # Sprite queues
         self.sprite_remove_queue = []
@@ -48,10 +54,25 @@ class Game:
         # Creates Server
         self.server = server.Server(self)
 
+        # Large game data object
+        self.game_data_manager = GameData.GameDataManager()
+
+        # Start button for lobby
+        self.start_button = Button.Button((50, 50), (100, 40), True,
+                                          "assets/images/startbutton_neutral.png",
+                                          "assets/images/startbutton_hover.png",
+                                          "assets/images/startbutton_disabled.png")
+
+        # Flag for main file to know whether game is starting
+        self.game_starting = False
+
     def run_lobby(self):
         # Screen values for lobby display
         SCREEN_SIZE = 400, 700
         self.screen = pygame.display.set_mode((400, 700), pygame.DOUBLEBUF)
+
+        # Updates start button position
+        self.start_button.pos = (SCREEN_SIZE[0] / 2, SCREEN_SIZE[1] - SCREEN_SIZE[1] * .05)
 
         # Constants for display
         FONT_SIZE = 20
@@ -73,7 +94,13 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     lobby_loop = False
-                    self.server.shutdown_server()
+                    self.server.shutdown_server(self)
+
+                # If start button is clicked...
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT:
+                    if self.start_button.is_clicked(event.pos):
+                        lobby_loop = False
+                        self.game_starting = True
 
             # Vertical text shift as each new name appears
             shift = 100
@@ -93,9 +120,16 @@ class Game:
                 # Shift down for next name to appear lower
                 shift += FONT_SIZE * SHIFT_SPACE_MULT
 
+            # Displays start button
+            self.start_button.run_sprite(self.screen, self)
+
             # Updates display
             pygame.display.update()
             #####################################
+
+            # Enables start button after 2 players connect
+            if len(self.connected_player_queue) > 1 and self.start_button.is_disabled:
+                self.start_button.enable()
 
             # Creates new connection if ready
             if self.server.ready_for_conn:
@@ -127,6 +161,27 @@ class Game:
             return True
         return False
 
+    def add_new_sprites(self, queue):
+        # Adds new sprites
+        if len(queue):
+            while len(queue):
+
+                # Adds item to additional separation lists for easier searching
+                if "pwp" in queue[0].tags:
+                    self.POWERUPS.append(queue[0])
+
+                self.SPRITES.append(queue[0])
+
+                # Sets sprite ID to a unique ID and increments the indexer
+                self.SPRITES[-1].set_id(self.next_available_id)
+                self.next_available_id += 1
+
+                # Clears queue
+                queue.pop(0)
+
+            # Resort sprites by z order (for drawing purposes) (lower z order = under)
+            self.SPRITES = sorted(self.SPRITES, key=lambda s: s.z_order)
+
     def run_game(self):
         # Variables for FPS display and tracking
         fps = 0
@@ -141,6 +196,9 @@ class Game:
 
         # Sorts Sprites
         self.SPRITES = sorted(self.SPRITES, key=lambda s: s.z_order)
+
+        # Adds connected players
+        self.add_new_sprites(self.connected_player_queue)
 
         # Starts all connections
         for spr in self.SPRITES:
@@ -165,10 +223,10 @@ class Game:
             for event in self.events:
                 if event.type == pygame.QUIT:
                     self.running = False
-                    self.server.shutdown_server()
+                    self.server.shutdown_server(self)
 
                 #elif event.type == pygame.MOUSEBUTTONDOWN:
-                #    self.test_thingie.use_sword(self, math.degrees(math.atan2(-(event.pos[1] - self.test_thingie.pos[1]), event.pos[0] - self.test_thingie.pos[0])))
+                    #self.test_thingie.use_sword(self, math.degrees(math.atan2(-(event.pos[1] - self.test_thingie.pos[1]), event.pos[0] - self.test_thingie.pos[0])))
 
             #self.test_thingie.move(vector_horizontal=-pygame.key.get_pressed()[pygame.K_LEFT] + pygame.key.get_pressed()[pygame.K_RIGHT],
             #                       vector_vertical=-pygame.key.get_pressed()[pygame.K_UP] + pygame.key.get_pressed()[pygame.K_DOWN])
@@ -180,15 +238,15 @@ class Game:
                 sprite1 = self.SPRITES[spr1]
 
                 # DEBUG #################################################################################
-                if "ply" in sprite1.tags:
+                #if "ply" in sprite1.tags:
                     #sprite1.move(vector_horizontal=math.cos(time.time()), vector_vertical=math.sin(time.time()))
 
                     #if Constants.tick % 20 == 0:
                     #ang = math.degrees(math.atan2(-(pygame.mouse.get_pos()[1] - self.test_thingie.pos[1]), pygame.mouse.get_pos()[0] - self.test_thingie.pos[0]))
-                    ang = Constants.tick
-                    sprite1.shoot_bullet(self, Sprites.Bullet.BulletTypes.REGULAR, ang)
-                    sprite1.shoot_bullet(self, Sprites.Bullet.BulletTypes.HIGH_VEL, ang)
-                    sprite1.shoot_missile(self, random.choice(self.SPRITES))
+                    #ang = Constants.tick
+                    #sprite1.shoot_bullet(self, Sprites.Bullet.BulletTypes.REGULAR, ang)
+                    #sprite1.shoot_bullet(self, Sprites.Bullet.BulletTypes.HIGH_VEL, ang)
+                    #sprite1.shoot_missile(self, random.choice(self.SPRITES))
 
                         #sprite1.use_sword(self, random.randint(1, 359))
                 # #######################################################################################
@@ -256,20 +314,7 @@ class Game:
 
             # Manages post frame sprite stuff
             #################################
-
-            # Adds new sprites
-            if len(self.sprite_add_queue):
-                for spr in self.sprite_add_queue:
-
-                    # Adds item to additional separation lists for easier searching
-                    if "pwp" in spr.tags:
-                        self.POWERUPS.append(spr)
-
-                    self.SPRITES.append(spr)
-                # Resort sprites by z order (for drawing purposes) (lower z order = under)
-                self.SPRITES = sorted(self.SPRITES, key=lambda s: s.z_order)
-                # Clears queue
-                self.sprite_add_queue = []
+            self.add_new_sprites(self.sprite_add_queue)
 
             # Removes sprites
             if len(self.sprite_remove_queue):

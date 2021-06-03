@@ -37,38 +37,51 @@ class Server:
             self.conn_threads.append(threading.Thread(target=self.comms))
             self.conn_threads[-1].start()
 
-    def shutdown_server(self):
+    def shutdown_server(self, game):
+        # closes socket
         self.sock.close()
+
+        # closes all player connections
+        if game.game_starting:
+            for ply in [spr for spr in game.SPRITES if "ply" in spr.tags]:
+                ply.conn.close()
 
     # Establishes and manages new connections
     def comms(self):
         if not self.locked:
             # Accepts a new connection
-            conn, addr = self.sock.accept()
+            try:
+                conn, addr = self.sock.accept()
 
-            # double checks
-            if not self.locked:
-                # Ready to accept a new connection
-                self.ready_for_conn = True
+                skip = False
+            except:
+                # Means that the server was shutdown
+                skip = True
 
-                # Announces connection
-                print('Connected by', addr)
+            if not skip:
+                # double checks
+                if not self.locked:
+                    # Ready to accept a new connection
+                    self.ready_for_conn = True
 
-                # Receives initial JSON data (including all MOD values and string name of player)
-                data = conn.recv(1024)
+                    # Announces connection
+                    print('Connected by', addr)
 
-                # Loads json
-                loaded_json = json.loads(data.decode("utf-8"))
+                    # Receives initial JSON data (including all MOD values and string name of player)
+                    data = conn.recv(1024)
 
-                # Adds player
-                self.game.add_connecting_player(Sprites.Player(self.game.map.get_new_spawn_position(), conn, addr,
-                                                               name=loaded_json["NAME"],
-                                                               mod_hp=loaded_json["MOD_HEALTH"],
-                                                               mod_swrd=loaded_json["MOD_SWORD"],
-                                                               mod_spd=loaded_json["MOD_SPEED"],
-                                                               mod_dodge=loaded_json["MOD_DODGE"],
-                                                               mod_dmg=loaded_json["MOD_DAMAGE"],
-                                                               mod_force=loaded_json["MOD_FORCE"],
-                                                               mod_energy=loaded_json["MOD_ENERGY"]))
-            else:
-                conn.close()
+                    # Loads json
+                    loaded_json = json.loads(data.decode("utf-8"))
+
+                    # Adds player
+                    self.game.add_connecting_player(Sprites.Player(self.game.map.get_new_spawn_position(), conn, addr,
+                                                                   name=loaded_json["NAME"],
+                                                                   mod_hp=loaded_json["MOD_HEALTH"],
+                                                                   mod_swrd=loaded_json["MOD_SWORD"],
+                                                                   mod_spd=loaded_json["MOD_SPEED"],
+                                                                   mod_dodge=loaded_json["MOD_DODGE"],
+                                                                   mod_dmg=loaded_json["MOD_DAMAGE"],
+                                                                   mod_force=loaded_json["MOD_FORCE"],
+                                                                   mod_energy=loaded_json["MOD_ENERGY"]))
+                else:
+                    conn.close()

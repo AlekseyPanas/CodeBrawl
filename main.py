@@ -14,16 +14,10 @@ GAME = Game.Game()
 # Runs lobby which awaits and managed connections
 GAME.run_lobby()
 
-# Starts game
-#GAME.run_game()
+# Starts game if lobby is ready
+if GAME.game_starting:
+    GAME.run_game()
 
-
-# TODO: Add Button class
-# TODO: Add start button functionality in Game "run_lobby"
-"""
-- Start button appears greyed out until at least 2 players connect
-- Start button, upon pressing, initiates game
-"""
 # TODO: Add unique IDs to all sprites (Parent object class)
 # TODO: Add game_data collection and sending to each frame of game (json object formation)
 # TODO: Make main loop wait until all client players respond, or until a time limit is met
