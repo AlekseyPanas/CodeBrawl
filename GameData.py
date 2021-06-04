@@ -25,10 +25,12 @@ class GameDataManager:
         for ply in self.game_data["players"]:
             if ply["id"] == player_id:
                 ply["is_you"] = True
+            else:
+                ply["is_you"] = False
 
         # Sets success values
         self.game_data["command_success"]["movement"] = movement_success
-        self.game_data["command_success"]["shoot_bullet"] = shoot_success
+        self.game_data["command_success"]["shoot_ammo"] = shoot_success
         self.game_data["command_success"]["use_sword"] = sword_success
 
         # Gives data
@@ -37,6 +39,8 @@ class GameDataManager:
     # Adds or updates player object
     def set_player(self, obj):
         if not obj.added_to_json:
+
+            obj.added_to_json = True
 
             self.game_data["players"].append(
                 {
@@ -56,8 +60,6 @@ class GameDataManager:
             )
 
         else:
-            obj.added_to_json = True
-
             for itm in self.game_data["players"]:
                 if itm["id"] == obj.id:
                     itm["health"] = obj.health
@@ -72,6 +74,8 @@ class GameDataManager:
 
     def set_regular_bullet(self, obj):
         if not obj.added_to_json:
+            obj.added_to_json = True
+
             self.game_data["regular_bullets"].append(
                 {
                     "id": obj.id,
@@ -84,8 +88,6 @@ class GameDataManager:
             )
 
         else:
-            obj.added_to_json = True
-
             for itm in self.game_data["players"]:
                 if itm["id"] == obj.id:
                     itm["location"] = obj.pos
@@ -94,6 +96,8 @@ class GameDataManager:
 
     def set_highvel_bullet(self, obj):
         if not obj.added_to_json:
+            obj.added_to_json = True
+
             self.game_data["highvel_bullets"].append(
                 {
                     "id": obj.id,
@@ -106,8 +110,6 @@ class GameDataManager:
             )
 
         else:
-            obj.added_to_json = True
-
             for itm in self.game_data["players"]:
                 if itm["id"] == obj.id:
                     itm["location"] = obj.pos
@@ -116,6 +118,8 @@ class GameDataManager:
 
     def set_missile(self, obj):
         if not obj.added_to_json:
+            obj.added_to_json = True
+
             self.game_data["regular_bullets"].append(
                 {
                     "id": obj.id,
@@ -130,8 +134,6 @@ class GameDataManager:
             )
 
         else:
-            obj.added_to_json = True
-
             for itm in self.game_data["players"]:
                 if itm["id"] == obj.id:
                     itm["location"] = obj.pos
@@ -142,6 +144,8 @@ class GameDataManager:
 
     def set_sword(self, obj):
         if not obj.added_to_json:
+            obj.added_to_json = True
+
             self.game_data["swords"].append(
                 {
                     "id": obj.id,
@@ -155,8 +159,6 @@ class GameDataManager:
             )
 
         else:
-            obj.added_to_json = True
-
             for itm in self.game_data["players"]:
                 if itm["id"] == obj.id:
                     itm["location"] = obj.pos
@@ -168,18 +170,18 @@ class GameDataManager:
 
     def set_powerup(self, obj):
         if not obj.added_to_json:
+            obj.added_to_json = True
+
             self.game_data["powerups"].append(
                 {
                     "id": obj.id,
                     "location": obj.pos,
                     "radius": Sprites.Powerup.POWERUP_RADIUS,
-                    "type_id": obj.powerup_type
+                    "type_id": obj.powerup_type.value
                 }
             )
 
         else:
-            obj.added_to_json = True
-
             for itm in self.game_data["players"]:
                 if itm["id"] == obj.id:
                     break

@@ -19,17 +19,7 @@ class Game:
         self.screen = pygame.display.set_mode(self.SCREEN_SIZE, pygame.DOUBLEBUF)
 
         # All sprites in the game
-        #self.SPRITES = [Sprites.Player((300, 400), 0, 0, mod_swrd=26),  #mod_hp=10, mod_energy=6, mod_force=6, mod_spd=4),
-        #                Sprites.Player((300, 500), 0, 0, mod_dodge=26)]
-        #self.SPRITES.append(Sprites.Missile((700, 700), self.SPRITES[0]))
         self.SPRITES = []
-
-        # Bullet Lag Test
-        """for _ in range(200):
-            self.SPRITES.append(Sprites.Bullet((random.randint(50, 900), random.randint(50, 900)), random.randint(0, 359),
-                                                Sprites.Bullet.BulletTypes.REGULAR))"""
-
-        #self.test_thingie = self.SPRITES[0]
 
         # Additional sprite separation lists
         self.POWERUPS = []
@@ -212,7 +202,6 @@ class Game:
             if Constants.tick:
                 valid = False
                 while not valid:
-                    print("STILLWAITING")
                     valid = True
 
                     # If any player has not received their commands, breaks and waits
@@ -220,7 +209,6 @@ class Game:
                         if not spr.has_received_commands:
                             valid = False
                             break
-            print("----------------------------------------------")
 
             if Constants.tick:
                 # Executes commands
@@ -266,35 +254,14 @@ class Game:
                     self.running = False
                     self.server.shutdown_server(self)
 
-                #elif event.type == pygame.MOUSEBUTTONDOWN:
-                    #self.test_thingie.use_sword(self, math.degrees(math.atan2(-(event.pos[1] - self.test_thingie.pos[1]), event.pos[0] - self.test_thingie.pos[0])))
-
-            #self.test_thingie.move(vector_horizontal=-pygame.key.get_pressed()[pygame.K_LEFT] + pygame.key.get_pressed()[pygame.K_RIGHT],
-            #                       vector_vertical=-pygame.key.get_pressed()[pygame.K_UP] + pygame.key.get_pressed()[pygame.K_DOWN])
-
             # Counts how many times the loop ran
             fire_count = 0
             # Runs sprites
             for spr1 in range(len(self.SPRITES)):
                 sprite1 = self.SPRITES[spr1]
 
-                # DEBUG #################################################################################
-                #if "ply" in sprite1.tags:
-                    #sprite1.move(vector_horizontal=math.cos(time.time()), vector_vertical=math.sin(time.time()))
-
-                    #if Constants.tick % 20 == 0:
-                    #ang = math.degrees(math.atan2(-(pygame.mouse.get_pos()[1] - self.test_thingie.pos[1]), pygame.mouse.get_pos()[0] - self.test_thingie.pos[0]))
-                    #ang = Constants.tick
-                    #sprite1.shoot_bullet(self, Sprites.Bullet.BulletTypes.REGULAR, ang)
-                    #sprite1.shoot_bullet(self, Sprites.Bullet.BulletTypes.HIGH_VEL, ang)
-                    #sprite1.shoot_missile(self, random.choice(self.SPRITES))
-
-                        #sprite1.use_sword(self, random.randint(1, 359))
-                # #######################################################################################
-
                 # Must have physics
                 if sprite1.physics_body is not None:
-                #if False:
 
                     # Checks if collision with wall occured and reacts accordingly
                     if self.is_out_of_bounds(sprite1.physics_body, sprite1.pos):

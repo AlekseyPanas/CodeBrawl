@@ -332,7 +332,10 @@ class Player(Object):
                 pass
 
             # Sends game data
-            self.conn.sendall(self.game_data)
+            try:
+                self.conn.sendall(self.game_data)
+            except:
+                break
             self.is_ready = False
 
             # Receives player commands

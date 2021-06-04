@@ -2,6 +2,8 @@ import socket
 import json
 import random
 from enum import IntEnum
+import time
+import math
 
 
 def setup():
@@ -21,7 +23,7 @@ def setup():
 
 
 def update(game_data):
-    pass
+    move(math.cos(time.time()), math.sin(time.time()))
 
 
 class PowerupTypes(IntEnum):
@@ -153,7 +155,7 @@ class Client:
             # Initiates communications loop
             while 1:
                 # Receives game data json
-                game_data = s.recv(32768)
+                game_data = s.recv(131072)
 
                 # Breaks if data ends connection
                 if not game_data:
