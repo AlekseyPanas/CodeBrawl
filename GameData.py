@@ -1,5 +1,6 @@
 import json
 import Sprites
+from typing import List
 
 
 class GameDataManager:
@@ -11,7 +12,7 @@ class GameDataManager:
             "players": [],
 
             "command_success": {
-                "movement": True,
+                "movement": [True, True],
                 "shoot_ammo": True,
                 "use_sword": True
             },
@@ -19,7 +20,7 @@ class GameDataManager:
             "regular_bullets": [], "highvel_bullets": [], "missiles": [], "swords": [], "powerups": []
         }
 
-    def get_game_data_bytes(self, movement_success: bool, shoot_success: bool, sword_success: bool,
+    def get_game_data_bytes(self, movement_success: List[bool], shoot_success: bool, sword_success: bool,
                       player_id: int):
         # Sets is_you flag to True for given player
         for ply in self.game_data["players"]:

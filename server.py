@@ -74,15 +74,22 @@ class Server:
                     # Loads json
                     loaded_json = json.loads(data.decode("utf-8"))
 
+                    # Checks if sum of mods exceeds 26
+                    is_exceed = False
+                    if sum([loaded_json[k] for k in loaded_json.keys() if k.startswith("MOD")]) > Sprites.Player.max_radius - Sprites.Player.default_radius:
+                        conn.close()
+                        is_exceed = True
+
                     # Adds player
-                    self.game.add_connecting_player(Sprites.Player(self.game.map.get_new_spawn_position(), conn, addr,
-                                                                   name=loaded_json["NAME"],
-                                                                   mod_hp=loaded_json["MOD_HEALTH"],
-                                                                   mod_swrd=loaded_json["MOD_SWORD"],
-                                                                   mod_spd=loaded_json["MOD_SPEED"],
-                                                                   mod_dodge=loaded_json["MOD_DODGE"],
-                                                                   mod_dmg=loaded_json["MOD_DAMAGE"],
-                                                                   mod_force=loaded_json["MOD_FORCE"],
-                                                                   mod_energy=loaded_json["MOD_ENERGY"]))
+                    if not is_exceed:
+                        self.game.add_connecting_player(Sprites.Player(self.game.map.get_new_spawn_position(), conn, addr,
+                                                                       name=loaded_json["NAME"],
+                                                                       mod_hp=loaded_json["MOD_HEALTH"],
+                                                                       mod_swrd=loaded_json["MOD_SWORD"],
+                                                                       mod_spd=loaded_json["MOD_SPEED"],
+                                                                       mod_dodge=loaded_json["MOD_DODGE"],
+                                                                       mod_dmg=loaded_json["MOD_DAMAGE"],
+                                                                       mod_force=loaded_json["MOD_FORCE"],
+                                                                       mod_energy=loaded_json["MOD_ENERGY"]))
                 else:
                     conn.close()

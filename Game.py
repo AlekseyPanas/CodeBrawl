@@ -9,6 +9,7 @@ import Map
 import server
 import Button
 import GameData
+import select
 
 
 class Game:
@@ -55,6 +56,15 @@ class Game:
 
         # Flag for main file to know whether game is starting
         self.game_starting = False
+
+        # Winner text to be displayed when someone has won!
+        self.winner_text = None
+
+        # Instructions text
+        self.INSTRUCTION_TEXT = Utilities.get_arial_font_bold(15).render("Press Q to quit or L to reset", True, (100, 100, 0))
+
+        # Set this flag to true to quit game after winner is presented
+        self.end_game = False
 
     def run_lobby(self):
         # Screen values for lobby display
@@ -117,13 +127,32 @@ class Game:
             pygame.display.update()
             #####################################
 
+            # Maintains communications between clients and checks for disconnects
+            for ply in self.connected_player_queue:
+                try:
+                    ply.conn.sendall(b"1")
+                    if not ply.conn.recv(64):
+                        ply.close_connection()
+                        ply.kill = True
+                except:
+                    ply.close_connection()
+                    ply.kill = True
+            # Removes dead players
+            self.connected_player_queue = [p for p in self.connected_player_queue if not p.kill]
+
             # Enables start button after 2 players connect
             if len(self.connected_player_queue) > 1 and self.start_button.is_disabled:
                 self.start_button.enable()
+            elif len(self.connected_player_queue) <= 1 and not self.start_button.is_disabled:
+                self.start_button.disable()
 
             # Creates new connection if ready
             if self.server.ready_for_conn:
                 self.server.new_conn()
+
+        # Sends start game flag to clients
+        for ply in self.connected_player_queue:
+            ply.conn.sendall(b"start")
 
     def add_sprite(self, sprite: Sprites.Object):
         self.sprite_add_queue.append(sprite)
@@ -198,42 +227,52 @@ class Game:
         while self.running:
             PLAYERS = [spr for spr in self.SPRITES if "ply" in spr.tags]
 
-            # Awaits commands from all players (skips first tick)
-            if Constants.tick:
+            # Awaits commands from all players (skips first tick, and does not wait if game is over)
+            if Constants.tick and self.winner_text is None:
                 valid = False
                 while not valid:
                     valid = True
 
                     # If any player has not received their commands, breaks and waits
                     for spr in PLAYERS:
-                        if not spr.has_received_commands:
+                        if not spr.has_received_commands and not spr.kill:
                             valid = False
+                            print(spr.display_name)
                             break
 
             if Constants.tick:
                 # Executes commands
                 for spr in PLAYERS:
-                    if spr.commands_data["is_movement_command"]:
-                        vec = spr.commands_data["movement_command_vectors"]
+                    if not spr.kill:
+                        try:
+                            if spr.commands_data["is_movement_command"]:
+                                vec = spr.commands_data["movement_command_vectors"]
 
-                        spr.move(vector_horizontal=vec[0], vector_vertical=vec[1])
+                                spr.move(vector_horizontal=vec[0], vector_vertical=vec[1])
 
-                    if spr.commands_data["is_shoot_regular_bullet_command"]:
-                        spr.shoot_bullet(self, Sprites.Bullet.BulletTypes.REGULAR, spr.commands_data["shoot_regular_bullet_angle"])
+                            if spr.commands_data["is_shoot_regular_bullet_command"]:
+                                spr.shoot_bullet(self, Sprites.Bullet.BulletTypes.REGULAR, spr.commands_data["shoot_regular_bullet_angle"])
 
-                    if spr.commands_data["is_shoot_highvel_bullet_command"]:
-                        spr.shoot_bullet(self, Sprites.Bullet.BulletTypes.HIGH_VEL, spr.commands_data["shoot_highvel_bullet_angle"])
+                            if spr.commands_data["is_shoot_highvel_bullet_command"]:
+                                spr.shoot_bullet(self, Sprites.Bullet.BulletTypes.HIGH_VEL, spr.commands_data["shoot_highvel_bullet_angle"])
 
-                    if spr.commands_data["is_shoot_missile_command"]:
-                        target_player = [ply for ply in PLAYERS if ply.id == spr.commands_data["shoot_missile_target_id"]]
-                        if len(target_player):
-                            spr.shoot_missile(self, target_player[0])
-                        else:
-                            # COMMAND FAILED BECAUSE PLAYER NOT FOUND
-                            pass
+                            if spr.commands_data["is_shoot_missile_command"]:
+                                target_player = [ply for ply in PLAYERS if ply.id == spr.commands_data["shoot_missile_target_id"]]
+                                if len(target_player):
+                                    spr.shoot_missile(self, target_player[0])
+                                else:
+                                    # COMMAND FAILED BECAUSE PLAYER NOT FOUND
+                                    spr.shoot_success = False
 
-                    if spr.commands_data["is_use_sword_command"]:
-                        spr.use_sword(self, spr.commands_data["use_sword_angle"])
+                            if spr.commands_data["is_use_sword_command"]:
+                                spr.use_sword(self, spr.commands_data["use_sword_angle"])
+
+                            # Resets flag
+                            spr.has_received_commands = False
+                        # If some bogus stuff is being sent in, it shall not pass
+                        except:
+                            spr.close_connection()
+                            spr.kill = True
 
             # Increments tick variable
             Constants.tick += 1
@@ -252,7 +291,22 @@ class Game:
             for event in self.events:
                 if event.type == pygame.QUIT:
                     self.running = False
+                    self.end_game = True
                     self.server.shutdown_server(self)
+
+                # Key events at the end of a match
+                elif self.winner_text is not None:
+                    if event.type == pygame.KEYDOWN:
+                        # Q to quit
+                        if event.key == pygame.K_q:
+                            self.running = False
+                            self.end_game = True
+                            self.server.shutdown_server(self)
+
+                        # Restart from lobby
+                        elif event.key == pygame.K_l:
+                            self.running = False
+                            self.server.shutdown_server(self)
 
             # Counts how many times the loop ran
             fire_count = 0
@@ -317,9 +371,6 @@ class Game:
             #print("FireCount", fire_count)
             #print()
 
-            # Updates display
-            pygame.display.update()
-
             # Manages post frame sprite stuff
             #################################
             self.add_new_sprites(self.sprite_add_queue)
@@ -366,10 +417,39 @@ class Game:
                 elif "pwp" in spr.tags:
                     self.game_data_manager.set_powerup(spr)
 
+            # If one player if left, that player is the winner
+            if len(PLAYERS) == 1 and self.winner_text is None:
+                # Closes connection
+                PLAYERS[0].close_connection()
+
+                # Removes pending commands
+                PLAYERS[0].clear_commands()
+
+                # Preserves player (keeps them alive even after connection has closed)
+                PLAYERS[0].preserve = True
+
+                # Renders winner display text
+                text = Utilities.get_impact(40).render(PLAYERS[0].display_name + " is Victorious!!", True, (255, 255, 0))
+                shadow = Utilities.get_impact(40).render(PLAYERS[0].display_name + " is Victorious!!", True, (0, 0, 0))
+                self.winner_text = pygame.Surface((text.get_width() + 5, text.get_height() + 5), pygame.SRCALPHA, 32)
+                self.winner_text.blit(shadow, (5, 5))
+                self.winner_text.blit(text, (0, 0))
+                self.winner_text = self.winner_text.convert_alpha()
+
+            # Draws winner text and instruction text, if applicable
+            if self.winner_text is not None:
+                self.screen.blit(self.winner_text, self.winner_text.get_rect(center=(self.SCREEN_SIZE[0] / 2,
+                                                                                     self.SCREEN_SIZE[1] / 2)))
+                self.screen.blit(self.INSTRUCTION_TEXT, self.INSTRUCTION_TEXT.get_rect(center=(self.SCREEN_SIZE[0] / 2,
+                                                                                          self.SCREEN_SIZE[1] / 2 + 40)))
+
             # Sends out game data
             for ply in PLAYERS:
-                ply.game_data = self.game_data_manager.get_game_data_bytes(True, True, True, ply.id)
+                ply.game_data = self.game_data_manager.get_game_data_bytes(ply.move_success, ply.shoot_success, ply.sword_success, ply.id)
                 ply.is_ready = True
+
+            # Updates display
+            pygame.display.update()
 
             # sets fps to a variable. can be set to caption any time for testing.
             last_fps_show += 1

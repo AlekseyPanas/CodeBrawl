@@ -1,68 +1,68 @@
 import socket
 import json
+import random
 from enum import IntEnum
-
 import time
 import math
-import random
 
 
 def setup():
     # Change the values to set your mods and Name String!
-    # Do not exceed a sum of 26 for your mods!
+    # Do not exceed a sum of 26!
     # Do not touch the key names!
 
-    return {"NAME": "Your Player Name",
+    return {"NAME": "Gutter",
 
             "MOD_HEALTH": 0,
             "MOD_FORCE": 0,
-            "MOD_SWORD": 0,
+            "MOD_SWORD": 26,
             "MOD_DAMAGE": 0,
             "MOD_SPEED": 0,
             "MOD_ENERGY": 0,
             "MOD_DODGE": 0}
 
 
+vec = [-1, 0]
+mode = "energy"
+
+
 def update(game_data):
-    """
-    This is your update function where you will write all the logic for your player!!
+    global vec, mode
 
-    Feel free to import libraries, create classes, functions, or variables to suit your needs!
+    me = None
 
-    Order of events within the game
-        - Server executes next frame
-        - Server gathers game state information
-        - Server sends game state info to clients
-        - Client (this file) calls the update function providing you with game_data
-        - Client sends commands that you executed back to the server
-        - < Repeat from the top >
+    en_pos = None
 
-    :param game_data: a large python dictionary containing information about the current game state
-    """
-    pass
+    for ply in game_data["players"]:
+        if ply["is_you"]:
+            me = ply
+        else:
+            en_pos = ply["location"]
+
+    me_pos = me["location"]
+
+    if en_pos is not None:
+        diff = [en_pos[0] - me_pos[0], en_pos[1] - me_pos[1]]
+        largest = max([abs(i) for i in diff])
+
+        if largest != 0:
+            vec = [diff[0] / largest, diff[1] / largest]
+        else:
+            vec = diff
+
+        move(*vec)
+
+        use_sword(math.degrees(math.atan2(-vec[1], vec[0])))
 
 
-# This Enum class links powerup IDs to their corresponding power up type.
-
-# You can choose to use this enum in your code, but mainly this enum will help you identify
-# which integer ID value represents which powerup.
-# (since game_data differentiates powerups based on a numerical ID, without this enum you wouldn't be able to identify)
 class PowerupTypes(IntEnum):
     MISSILE_AMMO = 0
     ENERGY = 1
     REGULAR_AMMO = 2
     HIGHVEL_AMMO = 3
 
-############################################################################################
-# Commands
-############################################################################################
-# ░█▀▀█ ░█▀▀▀█ ░█▀▄▀█ ░█▀▄▀█ ─█▀▀█ ░█▄─░█ ░█▀▀▄ ░█▀▀▀█
-# ░█─── ░█──░█ ░█░█░█ ░█░█░█ ░█▄▄█ ░█░█░█ ░█─░█ ─▀▀▀▄▄
-# ░█▄▄█ ░█▄▄▄█ ░█──░█ ░█──░█ ░█─░█ ░█──▀█ ░█▄▄▀ ░█▄▄▄█
-############################################################################################
-# Call the commands below from inside the update function above
-# DO NOT actually change any of the code below this divider
-############################################################################################
+#######################################
+#######################################
 
 
 def move(horizontal_vector, vertical_vector):
@@ -138,18 +138,7 @@ def use_sword(angle):
     CLIENT.commands["is_use_sword_command"] = True
     CLIENT.commands["use_sword_angle"] = angle
 
-#######################################################################################
-#  ████████╗░█████╗░██████╗░ ░█████╗░░█████╗░██████╗░███████╗
-#  ╚══██╔══╝██╔══██╗██╔══██╗ ██╔══██╗██╔══██╗██╔══██╗██╔════╝
-#  ░░░██║░░░██║░░╚═╝██████╔╝ ██║░░╚═╝██║░░██║██║░░██║█████╗░░
-#  ░░░██║░░░██║░░██╗██╔═══╝░ ██║░░██╗██║░░██║██║░░██║██╔══╝░░
-#  ░░░██║░░░╚█████╔╝██║░░░░░ ╚█████╔╝╚█████╔╝██████╔╝███████╗
-#  ░░░╚═╝░░░░╚════╝░╚═╝░░░░░ ░╚════╝░░╚════╝░╚═════╝░╚══════╝
-#######################################################################################
-#######################################################################################
-# Definitely do not tamper with code below this divider
-# Tampering with it could prevent you from properly connecting and interacting with the server
-#######################################################################################
+#######################################
 
 
 HOST = 'localhost'  # The server's hostname or IP address
@@ -198,7 +187,7 @@ class Client:
                 s.sendall(b"1")
 
             # Awaits response to start game (Any next data received is considered a response)
-            s.recv(2048).decode("utf-8")
+            s.recv(2048)
 
             # Initiates communications loop
             while 1:
@@ -228,7 +217,6 @@ class Client:
             # Closes connection
             s.close()
             print("Connection closed successfully")
-            input("Press enter to continue")
 
     @staticmethod
     def get_mods():

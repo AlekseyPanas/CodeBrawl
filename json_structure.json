@@ -19,7 +19,7 @@
     ],
 
     "command_success": {
-        "movement": true,
+        "movement": [true, true],
         "shoot_ammo": true,
         "use_sword": true
     },

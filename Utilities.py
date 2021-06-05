@@ -80,3 +80,6 @@ def get_arial_font_bold(size):
 
 def get_courier(size):
     return pygame.font.SysFont("Courier New", size, True)
+
+def get_impact(size):
+    return pygame.font.SysFont("Impact", size)

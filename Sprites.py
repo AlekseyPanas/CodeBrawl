@@ -152,7 +152,7 @@ class Sword(Object):
         screen.blit(self.render_body, self.render_body.get_rect(center=(self.pos[0] - self.render_shift[0],
                                                                         self.pos[1] - self.render_shift[1])))
 
-        pygame.draw.circle(screen, self.col, self.pos, self.physics_body.radius, width=1)
+        #pygame.draw.circle(screen, self.col, self.pos, self.physics_body.radius, width=1)
 
     def collision_react(self, game, obj):
         if not obj == self.parent and obj not in self.hit_targets:
@@ -208,7 +208,7 @@ class Player(Object):
     SWORD_ENERGY_DEDUCTION = 10
 
     # Ticks that must pass between shots
-    SHOOTING_COOLDOWN = 10
+    SHOOTING_COOLDOWN = 20
 
     def __init__(self, pos, conn, addr, name="player", mod_force=0, mod_dodge=0, mod_dmg=0, mod_spd=0, mod_energy=0, mod_swrd=0, mod_hp=0):
         super().__init__(None, pos, 10, {})
@@ -317,9 +317,29 @@ class Player(Object):
         # Flag for data
         self.has_received_commands = False
 
+        # Success data for commands
+        self.move_success = [True, True]  # x, y
+        self.shoot_success = True
+        self.sword_success = True
+
+        # When connection closes, player is set to be killed. If connection is closed deliberately upon winning,
+        # this allows the player to be preserved on screen
+        self.preserve = False
+
     # Once game is ready to start, run this
     def start_connection(self):
         self.connection_thread.start()
+
+    def close_connection(self):
+        self.conn.close()
+
+    def clear_commands(self):
+        # Clears commands
+        self.commands_data["is_shoot_missile_command"] = False
+        self.commands_data["is_use_sword_command"] = False
+        self.commands_data["is_movement_command"] = False
+        self.commands_data["is_shoot_regular_bullet_command"] = False
+        self.commands_data["is_shoot_highvel_bullet_command"] = False
 
     # In charge of all communication between player client and server
     def run_connection(self):
@@ -359,7 +379,8 @@ class Player(Object):
         print("Connection closed:", self.addr)
 
         # Kills player
-        self.kill = True
+        if not self.preserve:
+            self.kill = True
 
     def deal_damage(self, game, damage):
         # Rolls dodge chance and deals damage
@@ -402,16 +423,22 @@ class Player(Object):
 
     def use_sword(self, game, angle):
         if not self.is_sword_deployed and self.energy >= Player.SWORD_ENERGY_DEDUCTION:
+            self.sword_success = True
+
             self.is_sword_deployed = True
 
             self.sword = Sword(self, angle, sword_length_add=self.SWORD_LENGTH, dmg_mult=self.DAMAGE_MULT)
             game.add_sprite(self.sword)
 
             self.energy -= Player.SWORD_ENERGY_DEDUCTION
+        else:
+            self.sword_success = False
 
     def shoot_bullet(self, game, ammo_type, angle):
         # Checks if ammo is available
         if self.ammo_bag[ammo_type.value] and not self.shooting_cooldown:
+            self.shoot_success = True
+
             self.ammo_bag[ammo_type.value] -= 1
 
             # Shifts position to edge of circle
@@ -421,10 +448,14 @@ class Player(Object):
 
             # Sets a cooldown
             self.shooting_cooldown = Player.SHOOTING_COOLDOWN
+        else:
+            self.shoot_success = False
 
     # Target must be object
     def shoot_missile(self, game, target):
         if self.ammo_bag[Bullet.BulletTypes.MISSILE.value] and not self.shooting_cooldown:
+            self.shoot_success = True
+
             self.ammo_bag[Bullet.BulletTypes.MISSILE.value] -= 1
 
             # Rocket go fly fly
@@ -432,6 +463,8 @@ class Player(Object):
 
             # Sets a cooldown
             self.shooting_cooldown = Player.SHOOTING_COOLDOWN
+        else:
+            self.shoot_success = False
 
     def update(self, screen, game):
         # Moves based on velocity queue
@@ -461,6 +494,9 @@ class Player(Object):
             # Cancels movement if moving out of bounds of the map
             if game.is_out_of_bounds(self.physics_body, (self.pos[0] + dist, self.pos[1])):
                 dist = 0
+                self.move_success[0] = False
+            else:
+                self.move_success[0] = True
 
             # Moves player
             self.pos[0] += dist
@@ -482,6 +518,9 @@ class Player(Object):
             # Cancels movement if moving out of bounds of the map
             if game.is_out_of_bounds(self.physics_body, (self.pos[0], self.pos[1] + dist)):
                 dist = 0
+                self.move_success[1] = False
+            else:
+                self.move_success[1] = True
 
             # Moves player
             self.pos[1] += dist
@@ -510,6 +549,9 @@ class Player(Object):
         # Adds animation fragments
         for obj in fragmentate(self.render_body, self.pos):
             game.add_sprite(obj)
+
+        # Closes connection
+        self.close_connection()
 
 
 class Bullet(Object):
@@ -569,7 +611,7 @@ class Bullet(Object):
 
     def render(self, screen, game):
         screen.blit(self.render_body, self.render_body.get_rect(center=self.pos))
-        pygame.draw.circle(screen, self.col, self.pos, self.physics_body.radius, width=1)
+        #pygame.draw.circle(screen, self.col, self.pos, self.physics_body.radius, width=1)
 
     def update(self, screen, game):
         #if Constants.tick % 20 == 0:
@@ -636,7 +678,7 @@ class Missile(Bullet):
 
         # Draws image
         screen.blit(self.render_body, self.render_body.get_rect(center=self.pos))
-        pygame.draw.circle(screen, self.col, self.pos, self.physics_body.radius, width=1)
+        #pygame.draw.circle(screen, self.col, self.pos, self.physics_body.radius, width=1)
 
     def fixate_target(self):
         proposed_angle = self.get_proposed_angle()
