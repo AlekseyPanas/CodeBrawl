@@ -9,6 +9,7 @@ import socket
 import threading
 import Map
 import json
+import traceback
 from enum import IntEnum
 
 
@@ -300,6 +301,10 @@ class Player(Object):
 
         # String name to be displayed
         self.display_name = name
+        # Surface of display name
+        self.display_name_surf = Utilities.get_courier(12).render(self.display_name, True, (255, 255, 255))
+        self.display_name_surf.fill((255, 255, 255, 100), None, pygame.BLEND_RGBA_MULT)
+        self.display_name_surf = self.display_name_surf.convert_alpha()
 
         # Connection and address of connection
         self.conn = conn
@@ -344,8 +349,6 @@ class Player(Object):
     # In charge of all communication between player client and server
     def run_connection(self):
         # Game has begun
-        self.conn.sendall(b"1")
-
         while 1:
             # Awaits game data update
             while not self.is_ready:
@@ -354,7 +357,8 @@ class Player(Object):
             # Sends game data
             try:
                 self.conn.sendall(self.game_data)
-            except:
+            except Exception as e:
+                traceback.print_exc()
                 break
             self.is_ready = False
 
@@ -362,16 +366,17 @@ class Player(Object):
             try:
                 data = self.conn.recv(4096)
 
+                # Ends connection if connection closed on other end
+                if not data:
+                    break
+
                 # Sets player commands in parsed json format
                 self.commands_data = json.loads(data.decode("utf-8"))
                 # Sets flag
                 self.has_received_commands = True
-            except:
+            except Exception as e:
                 # If an error occurs, it means the connection has been somehow terminated
-                break
-
-            # Ends connection if connection closed on other end
-            if not data:
+                traceback.print_exc()
                 break
 
         # Closes connection on this side
@@ -408,12 +413,16 @@ class Player(Object):
         stop_angle = 90 + ((360 * self.health) / self.MAX_HEALTH)
         pygame.draw.arc(screen, (255, 0, 0), self.render_body.get_rect(center=self.pos), math.radians(90), math.radians(stop_angle), width=2)
 
+        # Draw energy bar
         energy_rect = self.render_body.get_rect()
         energy_rect.width *= 1.05
         energy_rect.height *= 1.05
         energy_rect.center = self.pos
         stop_angle = 90 + ((360 * self.energy) / self.MAX_ENERGY)
         pygame.draw.arc(screen, (0, 255, 0), energy_rect, math.radians(90), math.radians(stop_angle), width=1)
+
+        # Draw display name
+        screen.blit(self.display_name_surf, self.display_name_surf.get_rect(center=(self.pos[0], self.pos[1] + self.radius * 1.3)))
 
     # Call this method to move the player during the next update tick
     def move(self, vector_horizontal=0, vector_vertical=0):

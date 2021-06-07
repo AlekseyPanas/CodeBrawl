@@ -198,12 +198,9 @@ class Client:
             # Lobby waiting loop
             while 1:
                 data = s.recv(64)
-                if not data or data.decode("utf-8") == "start":
+                if not data or data.decode("utf-8") == "s":
                     break
                 s.sendall(b"1")
-
-            # Awaits response to start game (Any next data received is considered a response)
-            s.recv(2048)
 
             # Initiates communications loop
             while 1:

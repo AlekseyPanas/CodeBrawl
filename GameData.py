@@ -4,11 +4,12 @@ from typing import List
 
 
 class GameDataManager:
-    def __init__(self):
-        self.game_data = self.get_skeleton()
+    def __init__(self, game):
+        self.game_data = self.get_skeleton(game)
 
-    def get_skeleton(self):
+    def get_skeleton(self, game):
         return {
+            "screen_size": game.SCREEN_SIZE,
             "players": [],
 
             "command_success": {
@@ -48,11 +49,11 @@ class GameDataManager:
                     "id": obj.id,
                     "is_you": False,
                     "display_name": obj.display_name,
-                    "location": obj.pos,
-                    "speed": obj.SPEED,
+                    "location": [float(i) for i in obj.pos],
+                    "speed": float(obj.SPEED),
                     "radius": obj.radius,
                     "health": obj.health,
-                    "energy": obj.energy,
+                    "energy": float(obj.energy),
                     "shoot_cooldown": obj.shooting_cooldown,
                     "regular_bullet_ammo": obj.ammo_bag[Sprites.Bullet.BulletTypes.REGULAR.value],
                     "highvel_bullet_ammo": obj.ammo_bag[Sprites.Bullet.BulletTypes.HIGH_VEL.value],
@@ -64,8 +65,8 @@ class GameDataManager:
             for itm in self.game_data["players"]:
                 if itm["id"] == obj.id:
                     itm["health"] = obj.health
-                    itm["energy"] = obj.energy
-                    itm["location"] = obj.pos
+                    itm["energy"] = float(obj.energy)
+                    itm["location"] = [float(i) for i in obj.pos]
                     itm["regular_bullet_ammo"] = obj.ammo_bag[Sprites.Bullet.BulletTypes.REGULAR.value]
                     itm["highvel_bullet_ammo"] = obj.ammo_bag[Sprites.Bullet.BulletTypes.HIGH_VEL.value]
                     itm["missile_bullet_ammo"] = obj.ammo_bag[Sprites.Bullet.BulletTypes.MISSILE.value]
@@ -81,17 +82,17 @@ class GameDataManager:
                 {
                     "id": obj.id,
                     "shooter_id": obj.shooter.id,
-                    "speed": obj.speed,
+                    "speed": float(obj.speed),
                     "radius": obj.physics_body.radius,
-                    "location": obj.pos,
-                    "vector": obj.vector
+                    "location": [float(i) for i in obj.pos],
+                    "vector": [float(i) for i in obj.vector]
                 }
             )
 
         else:
             for itm in self.game_data["players"]:
                 if itm["id"] == obj.id:
-                    itm["location"] = obj.pos
+                    itm["location"] = [float(i) for i in obj.pos]
 
                     break
 
@@ -103,17 +104,17 @@ class GameDataManager:
                 {
                     "id": obj.id,
                     "shooter_id": obj.shooter.id,
-                    "speed": obj.speed,
+                    "speed": float(obj.speed),
                     "radius": obj.physics_body.radius,
-                    "location": obj.pos,
-                    "vector": obj.vector
+                    "location": [float(i) for i in obj.pos],
+                    "vector": [float(i) for i in obj.vector]
                 }
             )
 
         else:
             for itm in self.game_data["players"]:
                 if itm["id"] == obj.id:
-                    itm["location"] = obj.pos
+                    itm["location"] = [float(i) for i in obj.pos]
 
                     break
 
@@ -126,20 +127,20 @@ class GameDataManager:
                     "id": obj.id,
                     "shooter_id": obj.shooter.id,
                     "target_id": obj.target.id,
-                    "speed": obj.speed,
+                    "speed": float(obj.speed),
                     "radius": obj.physics_body.radius,
-                    "location": obj.pos,
-                    "vector": obj.vector,
-                    "angle": obj.angle
+                    "location": [float(i) for i in obj.pos],
+                    "vector": [float(i) for i in obj.vector],
+                    "angle": float(obj.angle)
                 }
             )
 
         else:
             for itm in self.game_data["players"]:
                 if itm["id"] == obj.id:
-                    itm["location"] = obj.pos
-                    itm["vector"] = obj.vector
-                    itm["angle"] = obj.angle
+                    itm["location"] = [float(i) for i in obj.pos]
+                    itm["vector"] = [float(i) for i in obj.vector]
+                    itm["angle"] = float(obj.angle)
 
                     break
 
@@ -151,7 +152,7 @@ class GameDataManager:
                 {
                     "id": obj.id,
                     "wielder_id": obj.parent.id,
-                    "location": obj.pos,
+                    "location": [float(i) for i in obj.pos],
                     "radius": obj.physics_body.radius,
                     "is_blocked": obj.cancel_hit,
                     "is_cooldown": obj.counter <= Sprites.Sword.HIT_DELAY,
@@ -162,7 +163,7 @@ class GameDataManager:
         else:
             for itm in self.game_data["players"]:
                 if itm["id"] == obj.id:
-                    itm["location"] = obj.pos
+                    itm["location"] = [float(i) for i in obj.pos]
                     itm["is_blocked"] = obj.cancel_hit
                     itm["is_cooldown"] = obj.counter <= Sprites.Sword.HIT_DELAY
                     itm["hit_objects"] = [i.id for i in obj.hit_targets]
@@ -176,7 +177,7 @@ class GameDataManager:
             self.game_data["powerups"].append(
                 {
                     "id": obj.id,
-                    "location": obj.pos,
+                    "location": [float(i) for i in obj.pos],
                     "radius": Sprites.Powerup.POWERUP_RADIUS,
                     "type_id": obj.powerup_type.value
                 }

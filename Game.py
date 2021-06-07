@@ -46,7 +46,7 @@ class Game:
         self.server = server.Server(self)
 
         # Large game data object
-        self.game_data_manager = GameData.GameDataManager()
+        self.game_data_manager = GameData.GameDataManager(self)
 
         # Start button for lobby
         self.start_button = Button.Button((50, 50), (100, 40), True,
@@ -131,7 +131,8 @@ class Game:
             for ply in self.connected_player_queue:
                 try:
                     ply.conn.sendall(b"1")
-                    if not ply.conn.recv(64):
+                    data = ply.conn.recv(64)
+                    if not data:
                         ply.close_connection()
                         ply.kill = True
                 except:
@@ -152,7 +153,7 @@ class Game:
 
         # Sends start game flag to clients
         for ply in self.connected_player_queue:
-            ply.conn.sendall(b"start")
+            ply.conn.sendall(b"s")
 
     def add_sprite(self, sprite: Sprites.Object):
         self.sprite_add_queue.append(sprite)
@@ -237,7 +238,6 @@ class Game:
                     for spr in PLAYERS:
                         if not spr.has_received_commands and not spr.kill:
                             valid = False
-                            print(spr.display_name)
                             break
 
             if Constants.tick:
@@ -321,41 +321,40 @@ class Game:
                     if self.is_out_of_bounds(sprite1.physics_body, sprite1.pos):
                         sprite1.collision_wall_react(self)
 
-                    else:
-                        # Collision detection optimized loop
-                        for spr2 in range(spr1 + 1, len(self.SPRITES)):
-                            sprite2 = self.SPRITES[spr2]
+                    # Collision detection optimized loop
+                    for spr2 in range(spr1 + 1, len(self.SPRITES)):
+                        sprite2 = self.SPRITES[spr2]
 
-                            # Must have physics
-                            if sprite2.physics_body is not None:
+                        # Must have physics
+                        if sprite2.physics_body is not None:
 
-                                # List of all position combinations to check
-                                sprite1_positions = [sprite1.pos]
-                                sprite2_positions = [sprite2.pos]
+                            # List of all position combinations to check
+                            sprite1_positions = [sprite1.pos]
+                            sprite2_positions = [sprite2.pos]
 
-                                # Bullets that are travelling super fast will be tested against an additional midpt
-                                for spr, pos_arr in ((sprite1, sprite1_positions), (sprite2, sprite2_positions)):
-                                    if "bullet" in spr.tags and spr.speed > Constants.BULLET_MIDPT_SPEED_MIN:
-                                        # Adds pos of bullet midway to its future pos according to its velocity
-                                        pos_arr.append((spr.pos[0] + (spr.vector[0] * (spr.speed / 2)),
-                                                        spr.pos[1] + (spr.vector[1] * (spr.speed / 2))))
+                            # Bullets that are travelling super fast will be tested against an additional midpt
+                            for spr, pos_arr in ((sprite1, sprite1_positions), (sprite2, sprite2_positions)):
+                                if "bullet" in spr.tags and spr.speed > Constants.BULLET_MIDPT_SPEED_MIN:
+                                    # Adds pos of bullet midway to its future pos according to its velocity
+                                    pos_arr.append((spr.pos[0] + (spr.vector[0] * (spr.speed / 2)),
+                                                    spr.pos[1] + (spr.vector[1] * (spr.speed / 2))))
 
-                                break_flag = False
-                                # Checks collision of sprites across all midway pts
-                                for spr1_pos in sprite1_positions:
-                                    for spr2_pos in sprite2_positions:
-                                        # Counts loop runs
-                                        fire_count += 1
-                                        if Utilities.is_colliding(sprite1.physics_body, spr1_pos, sprite2.physics_body, spr2_pos):
-                                            # Calls reaction methods
-                                            sprite1.collision_react(self, sprite2)
-                                            sprite2.collision_react(self, sprite1)
+                            break_flag = False
+                            # Checks collision of sprites across all midway pts
+                            for spr1_pos in sprite1_positions:
+                                for spr2_pos in sprite2_positions:
+                                    # Counts loop runs
+                                    fire_count += 1
+                                    if Utilities.is_colliding(sprite1.physics_body, spr1_pos, sprite2.physics_body, spr2_pos):
+                                        # Calls reaction methods
+                                        sprite1.collision_react(self, sprite2)
+                                        sprite2.collision_react(self, sprite1)
 
-                                            # Breaks both loops
-                                            break_flag = True
-                                            break
-                                    if break_flag:
+                                        # Breaks both loops
+                                        break_flag = True
                                         break
+                                if break_flag:
+                                    break
 
                 # Runs sprite logic
                 sprite1.run_sprite(self.screen, self)
