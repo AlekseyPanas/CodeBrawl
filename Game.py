@@ -9,7 +9,8 @@ import Map
 import server
 import Button
 import GameData
-import select
+import ClientSim
+import traceback
 
 
 class Game:
@@ -66,6 +67,28 @@ class Game:
         # Set this flag to true to quit game after winner is presented
         self.end_game = False
 
+        # Manages server mode actions
+        if Constants.SERVER_MODE == Constants.ServerModes.PYTHON_TEST_SERVER:
+            # Adds keycontrolled player
+            self.connected_player_queue.append(
+                Sprites.BuiltInPlayer(self.map.get_new_spawn_position(), ClientSim.keyboard_update, "Keyboard",
+                                      mod_force=3, mod_energy=4, mod_dmg=4, mod_dodge=4,
+                                      mod_swrd=3, mod_hp=4, mod_spd=4))
+            # Adds AI Controlled builtin player
+            setup = ClientSim.setup()
+            self.connected_player_queue.append(
+                Sprites.BuiltInPlayer(self.map.get_new_spawn_position(), ClientSim.CLIENT.update, setup["NAME"],
+                                      mod_force=setup["MOD_FORCE"], mod_energy=setup["MOD_ENERGY"],
+                                      mod_dmg=setup["MOD_DAMAGE"],
+                                      mod_dodge=setup["MOD_DODGE"],
+                                      mod_swrd=setup["MOD_SWORD"], mod_hp=setup["MOD_HEALTH"],
+                                      mod_spd=setup["MOD_SPEED"]))
+        elif Constants.SERVER_MODE == Constants.ServerModes.OTHER_TEST_SERVER:
+            # Adds keycontrolled player
+            self.connected_player_queue.append(
+                Sprites.BuiltInPlayer(self.map.get_new_spawn_position(), ClientSim.keyboard_update, "Keyboard",
+                                      mod_force=3, mod_energy=4, mod_dmg=4, mod_dodge=4,
+                                      mod_swrd=3, mod_hp=4, mod_spd=4))
     def run_lobby(self):
         # Screen values for lobby display
         SCREEN_SIZE = 400, 700
@@ -129,15 +152,17 @@ class Game:
 
             # Maintains communications between clients and checks for disconnects
             for ply in self.connected_player_queue:
-                try:
-                    ply.conn.sendall(b"1")
-                    data = ply.conn.recv(64)
-                    if not data:
+                # Checks for builtin player first
+                if "builtin_ply" not in ply.tags:
+                    try:
+                        ply.conn.sendall(b"1")
+                        data = ply.conn.recv(64)
+                        if not data:
+                            ply.close_connection()
+                            ply.kill = True
+                    except:
                         ply.close_connection()
                         ply.kill = True
-                except:
-                    ply.close_connection()
-                    ply.kill = True
             # Removes dead players
             self.connected_player_queue = [p for p in self.connected_player_queue if not p.kill]
 
@@ -153,7 +178,8 @@ class Game:
 
         # Sends start game flag to clients
         for ply in self.connected_player_queue:
-            ply.conn.sendall(b"s")
+            if "builtin_ply" not in ply.tags:
+                ply.conn.sendall(b"s")
 
     def add_sprite(self, sprite: Sprites.Object):
         self.sprite_add_queue.append(sprite)
@@ -270,7 +296,8 @@ class Game:
                             # Resets flag
                             spr.has_received_commands = False
                         # If some bogus stuff is being sent in, it shall not pass
-                        except:
+                        except Exception as e:
+                            traceback.print_exc()
                             spr.close_connection()
                             spr.kill = True
 

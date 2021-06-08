@@ -563,6 +563,51 @@ class Player(Object):
         self.close_connection()
 
 
+# A player which is hardcoded into the server (instead of being controlled by a TCP client)
+class BuiltInPlayer(Player):
+    def __init__(self, pos, update_func, name="player", mod_force=0, mod_dodge=0, mod_dmg=0, mod_spd=0, mod_energy=0, mod_swrd=0, mod_hp=0):
+        # None for connection and addr
+        super().__init__(pos, None, None, name, mod_force, mod_dodge, mod_dmg, mod_spd, mod_energy, mod_swrd, mod_hp)
+
+        # Adds unique tag
+        self.tags.add("builtin_ply")
+
+        # Function to be called with game_data to receive back commands
+        self.update_func = update_func
+
+        # Flag to end simulated connection loop
+        self.conn_end_flag = False
+
+    def close_connection(self):
+        self.conn_end_flag = True
+
+    def run_connection(self):
+        # Game has begun
+        while 1:
+            # Awaits game data update
+            while not self.is_ready:
+                pass
+
+            # Resets flag
+            self.is_ready = False
+
+            # Calls given update func to receive commands (in place of TCP interaction)
+            self.commands_data = self.update_func(json.loads(self.game_data.decode("utf-8")))
+            # Sets flag
+            self.has_received_commands = True
+
+            # Flag to end loop
+            if self.conn_end_flag:
+                break
+
+        # Closes connection on this side
+        print("Builtin Player Disconnected:", self.display_name)
+
+        # Kills player
+        if not self.preserve:
+            self.kill = True
+
+
 class Bullet(Object):
 
     class BulletTypes(IntEnum):

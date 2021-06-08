@@ -44,7 +44,7 @@ class Server:
         # closes all player connections
         if game.game_starting:
             for ply in [spr for spr in game.SPRITES if "ply" in spr.tags]:
-                ply.conn.close()
+                ply.close_connection()
 
     # Establishes and manages new connections
     def comms(self):

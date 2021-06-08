@@ -32,6 +32,3 @@ while 1:
 
 # TODO: Build Java client
 # TODO: Build C# client
-
-# TODO: Build 1v1 key controlled test game for python
-# TODO: Build 1v1 key controlled test game for java and c# (include clients)
