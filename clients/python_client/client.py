@@ -69,8 +69,8 @@ def move(horizontal_vector, vertical_vector):
     """
     Call this function to move your player
 
-    :param horizontal_vector: A number between 0 and 1 representing the fraction of the speed to move horizontally
-    :param vertical_vector: A number between 0 and 1 representing the fraction of the speed to move vertically
+    :param horizontal_vector: A number between -1 and 1 representing the fraction of the speed to move horizontally
+    :param vertical_vector: A number between -1 and 1 representing the fraction of the speed to move vertically
     """
 
     CLIENT.commands["is_movement_command"] = True

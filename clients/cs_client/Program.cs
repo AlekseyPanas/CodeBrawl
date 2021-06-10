@@ -51,12 +51,12 @@ namespace CodeBrawl
 
             return Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new Player
             {
-                NAME = "whatever you want",
+                NAME = "Your Player Name",
                 MOD_HEALTH = 0,
                 MOD_FORCE = 0,
                 MOD_SWORD = 0,
                 MOD_DAMAGE = 0,
-                MOD_SPEED = 26,
+                MOD_SPEED = 0,
                 MOD_ENERGY = 0,
                 MOD_DODGE = 0
             }));
@@ -108,8 +108,8 @@ namespace CodeBrawl
         /**
          * Call this function to move your player
          *
-         * @param horizontal_vector A number between 0 and 1 representing the fraction of the speed to move horizontally
-         * @param vertical_vector   A number between 0 and 1 representing the fraction of the speed to move vertically
+         * @param horizontal_vector A number between -1 and 1 representing the fraction of the speed to move horizontally
+         * @param vertical_vector   A number between -1 and 1 representing the fraction of the speed to move vertically
          */
         public static void move(double horizontal_vector, double vertical_vector)
         {

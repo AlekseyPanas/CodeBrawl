@@ -113,8 +113,8 @@ public class Main {
     /**
      * Call this function to move your player
      *
-     * @param horizontal_vector A number between 0 and 1 representing the fraction of the speed to move horizontally
-     * @param vertical_vector   A number between 0 and 1 representing the fraction of the speed to move vertically
+     * @param horizontal_vector A number between -1 and 1 representing the fraction of the speed to move horizontally
+     * @param vertical_vector   A number between -1 and 1 representing the fraction of the speed to move vertically
      */
     public static void move(double horizontal_vector, double vertical_vector) {
         velocity.set(0, horizontal_vector);
