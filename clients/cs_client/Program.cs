@@ -18,7 +18,7 @@ namespace CodeBrawl
         public static bool has_shot = false;
 
         // Command JSON to be sent to the server
-        public static Commands commands = new()
+        public static Commands commands = new Commands()
         {
             is_movement_command = false,
             movement_command_vectors = new double[] { 0, 0 },
@@ -39,7 +39,7 @@ namespace CodeBrawl
             String HOST = "98.113.73.8"; // The server's hostname or IP address
             Int32 PORT = 42069; // The port used by the server
 
-            Client client = new(HOST, PORT);
+            Client client = new Client(HOST, PORT);
             client.connect();
         }
 
@@ -328,7 +328,7 @@ namespace CodeBrawl
         public void connect()
         {
             // initialize socket and input output streams
-            TcpClient client = new(HOST, PORT);
+            TcpClient client = new TcpClient(HOST, PORT);
             NetworkStream stream = client.GetStream();
 
             // send initial mods data

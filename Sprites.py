@@ -88,7 +88,7 @@ class Sword(Object):
     SHEATH_MULT = 1.2
 
     # How long until it begins to retract
-    DEPLOYMENT_TIME = 30
+    DEPLOYMENT_TIME = 20
     # How many ticks until the sword deals damage
     HIT_DELAY = DEPLOYMENT_TIME / 5
 
@@ -206,7 +206,7 @@ class Player(Object):
     ENERGY_DEDUCTION_MULT = 0.02
 
     # Cost to use sword
-    SWORD_ENERGY_DEDUCTION = 10
+    SWORD_ENERGY_DEDUCTION = 25
 
     # Ticks that must pass between shots
     SHOOTING_COOLDOWN = 20

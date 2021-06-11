@@ -208,7 +208,7 @@ def keyboard_update(game_data):
     # Determines missile info
     is_shoot_missile = False
     missile_target_id = 0
-    if bool(pygame.key.get_pressed()[pygame.K_SPACE]) and en is not None:
+    if bool(pygame.key.get_pressed()[pygame.K_e]) and en is not None:
         is_shoot_missile = True
         missile_target_id = en["id"]
 
