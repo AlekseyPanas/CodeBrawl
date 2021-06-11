@@ -115,7 +115,7 @@ class Sword(Object):
         self.sword_damage = Sword.SWORD_DAMAGE * dmg_mult
 
         self.physics_body = Utilities.CircleBody(self.sword_length / 2)
-        self.render_body = pygame.transform.rotate(Utilities.load_image("assets/images/sword.png", size=(self.sword_length, 10)), angle).convert_alpha()
+        self.render_body = pygame.transform.rotate(Utilities.load_image("./assets/images/sword.png", size=(self.sword_length, 10)), angle).convert_alpha()
 
         # Tracks how long it has been deployed
         self.counter = 0
@@ -620,9 +620,9 @@ class Bullet(Object):
                     BulletTypes.REGULAR: 3,
                     BulletTypes.MISSILE: 15}
 
-    BULLET_IMAGES = {BulletTypes.HIGH_VEL: Utilities.load_image("assets/images/high_vel_bullet.png", size=(15, 3)),
-                     BulletTypes.REGULAR: Utilities.load_image("assets/images/regular_bullet.png", size=(10, 4)),
-                     BulletTypes.MISSILE: Utilities.load_image("assets/images/missile.png", size=(30, 20))}
+    BULLET_IMAGES = {BulletTypes.HIGH_VEL: Utilities.load_image("./assets/images/high_vel_bullet.png", size=(15, 3)),
+                     BulletTypes.REGULAR: Utilities.load_image("./assets/images/regular_bullet.png", size=(10, 4)),
+                     BulletTypes.MISSILE: Utilities.load_image("./assets/images/missile.png", size=(30, 20))}
 
     BULLET_DAMAGE = {BulletTypes.HIGH_VEL: 5,
                      BulletTypes.REGULAR: 3,
@@ -980,7 +980,7 @@ class MissilePowerup(Powerup):
     QUANTITY = 3
 
     def __init__(self, pos):
-        super().__init__(Utilities.load_image("assets/images/missile_powerup.png", size=(200*1.2, 50*1.2)), pos,
+        super().__init__(Utilities.load_image("./assets/images/missile_powerup.png", size=(200*1.2, 50*1.2)), pos,
                          Map.Map.PowerupTypes.MISSILE)
 
     def collision_react(self, game, obj):
@@ -995,7 +995,7 @@ class RegularBulletPowerup(Powerup):
     QUANTITY = 25
 
     def __init__(self, pos):
-        super().__init__(Utilities.load_image("assets/images/regular_bullet_powerup.png", size=(200*1.2, 50*1.2)), pos,
+        super().__init__(Utilities.load_image("./assets/images/regular_bullet_powerup.png", size=(200*1.2, 50*1.2)), pos,
                          Map.Map.PowerupTypes.REGULAR)
 
     def collision_react(self, game, obj):
@@ -1010,7 +1010,7 @@ class HighvelBulletPowerup(Powerup):
     QUANTITY = 15
 
     def __init__(self, pos):
-        super().__init__(Utilities.load_image("assets/images/highvel_bullet_powerup.png", size=(200*1.2, 50*1.2)), pos,
+        super().__init__(Utilities.load_image("./assets/images/highvel_bullet_powerup.png", size=(200*1.2, 50*1.2)), pos,
                          Map.Map.PowerupTypes.HIGHVEL)
 
     def collision_react(self, game, obj):
@@ -1025,7 +1025,7 @@ class EnergyPowerup(Powerup):
     PERCENT_OF_MAX_ENERGY = .5
 
     def __init__(self, pos):
-        super().__init__(Utilities.load_image("assets/images/energy_powerup.png", size=(200*1.2, 50*1.2)), pos,
+        super().__init__(Utilities.load_image("./assets/images/energy_powerup.png", size=(200*1.2, 50*1.2)), pos,
                          Map.Map.PowerupTypes.ENERGY)
 
     def collision_react(self, game, obj):
@@ -1038,5 +1038,5 @@ class EnergyPowerup(Powerup):
 class Explosion(Animation):
     def __init__(self, pos):
         super().__init__(-1, 200, {}, (8, 1), 3,
-                          Utilities.load_image("assets/images/Explosion.png", size=(8 * 50 * 2.5, 50 * 2.5)),
+                          Utilities.load_image("./assets/images/Explosion.png", size=(8 * 50 * 2.5, 50 * 2.5)),
                           pos, 8)
