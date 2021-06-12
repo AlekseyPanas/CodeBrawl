@@ -46,31 +46,31 @@ class GameDataManager:
 
             self.game_data["players"].append(
                 {
-                    "id": obj.id,
+                    "id": int(obj.id),
                     "is_you": False,
                     "display_name": obj.display_name,
                     "location": [float(i) for i in obj.pos],
                     "speed": float(obj.SPEED),
                     "radius": obj.radius,
-                    "health": obj.health,
+                    "health": float(obj.health),
                     "energy": float(obj.energy),
-                    "shoot_cooldown": obj.shooting_cooldown,
-                    "regular_bullet_ammo": obj.ammo_bag[Sprites.Bullet.BulletTypes.REGULAR.value],
-                    "highvel_bullet_ammo": obj.ammo_bag[Sprites.Bullet.BulletTypes.HIGH_VEL.value],
-                    "missile_bullet_ammo": obj.ammo_bag[Sprites.Bullet.BulletTypes.MISSILE.value]
+                    "shoot_cooldown": int(obj.shooting_cooldown),
+                    "regular_bullet_ammo": int(obj.ammo_bag[Sprites.Bullet.BulletTypes.REGULAR.value]),
+                    "highvel_bullet_ammo": int(obj.ammo_bag[Sprites.Bullet.BulletTypes.HIGH_VEL.value]),
+                    "missile_bullet_ammo": int(obj.ammo_bag[Sprites.Bullet.BulletTypes.MISSILE.value])
                 }
             )
 
         else:
             for itm in self.game_data["players"]:
                 if itm["id"] == obj.id:
-                    itm["health"] = obj.health
+                    itm["health"] = float(obj.health)
                     itm["energy"] = float(obj.energy)
                     itm["location"] = [float(i) for i in obj.pos]
-                    itm["regular_bullet_ammo"] = obj.ammo_bag[Sprites.Bullet.BulletTypes.REGULAR.value]
-                    itm["highvel_bullet_ammo"] = obj.ammo_bag[Sprites.Bullet.BulletTypes.HIGH_VEL.value]
-                    itm["missile_bullet_ammo"] = obj.ammo_bag[Sprites.Bullet.BulletTypes.MISSILE.value]
-                    itm["shooting_cooldown"] = obj.shooting_cooldown
+                    itm["regular_bullet_ammo"] = int(obj.ammo_bag[Sprites.Bullet.BulletTypes.REGULAR.value])
+                    itm["highvel_bullet_ammo"] = int(obj.ammo_bag[Sprites.Bullet.BulletTypes.HIGH_VEL.value])
+                    itm["missile_bullet_ammo"] = int(obj.ammo_bag[Sprites.Bullet.BulletTypes.MISSILE.value])
+                    itm["shooting_cooldown"] = int(obj.shooting_cooldown)
 
                     break
 
@@ -80,10 +80,10 @@ class GameDataManager:
 
             self.game_data["regular_bullets"].append(
                 {
-                    "id": obj.id,
-                    "shooter_id": obj.shooter.id,
+                    "id": int(obj.id),
+                    "shooter_id": int(obj.shooter.id),
                     "speed": float(obj.speed),
-                    "radius": obj.physics_body.radius,
+                    "radius": int(obj.physics_body.radius),
                     "location": [float(i) for i in obj.pos],
                     "vector": [float(i) for i in obj.vector]
                 }
@@ -102,10 +102,10 @@ class GameDataManager:
 
             self.game_data["highvel_bullets"].append(
                 {
-                    "id": obj.id,
-                    "shooter_id": obj.shooter.id,
+                    "id": int(obj.id),
+                    "shooter_id": int(obj.shooter.id),
                     "speed": float(obj.speed),
-                    "radius": obj.physics_body.radius,
+                    "radius": int(obj.physics_body.radius),
                     "location": [float(i) for i in obj.pos],
                     "vector": [float(i) for i in obj.vector]
                 }
@@ -124,11 +124,11 @@ class GameDataManager:
 
             self.game_data["regular_bullets"].append(
                 {
-                    "id": obj.id,
-                    "shooter_id": obj.shooter.id,
-                    "target_id": obj.target.id,
+                    "id": int(obj.id),
+                    "shooter_id": int(obj.shooter.id),
+                    "target_id": int(obj.target.id),
                     "speed": float(obj.speed),
-                    "radius": obj.physics_body.radius,
+                    "radius": int(obj.physics_body.radius),
                     "location": [float(i) for i in obj.pos],
                     "vector": [float(i) for i in obj.vector],
                     "angle": float(obj.angle)
@@ -150,13 +150,13 @@ class GameDataManager:
 
             self.game_data["swords"].append(
                 {
-                    "id": obj.id,
-                    "wielder_id": obj.parent.id,
+                    "id": int(obj.id),
+                    "wielder_id": int(obj.parent.id),
                     "location": [float(i) for i in obj.pos],
-                    "radius": obj.physics_body.radius,
+                    "radius": int(obj.physics_body.radius),
                     "is_blocked": obj.cancel_hit,
                     "is_cooldown": obj.counter <= Sprites.Sword.HIT_DELAY,
-                    "hit_objects": [i.id for i in obj.hit_targets]
+                    "hit_objects": [int(i.id) for i in obj.hit_targets]
                 }
             )
 
@@ -166,7 +166,7 @@ class GameDataManager:
                     itm["location"] = [float(i) for i in obj.pos]
                     itm["is_blocked"] = obj.cancel_hit
                     itm["is_cooldown"] = obj.counter <= Sprites.Sword.HIT_DELAY
-                    itm["hit_objects"] = [i.id for i in obj.hit_targets]
+                    itm["hit_objects"] = [int(i.id) for i in obj.hit_targets]
 
                     break
 
@@ -176,17 +176,17 @@ class GameDataManager:
 
             self.game_data["powerups"].append(
                 {
-                    "id": obj.id,
+                    "id": int(obj.id),
                     "location": [float(i) for i in obj.pos],
-                    "radius": Sprites.Powerup.POWERUP_RADIUS,
-                    "type_id": obj.powerup_type.value
+                    "radius": int(Sprites.Powerup.POWERUP_RADIUS),
+                    "type_id": int(obj.powerup_type.value)
                 }
             )
 
-        else:
-            for itm in self.game_data["players"]:
-                if itm["id"] == obj.id:
-                    break
+        #else:
+        #    for itm in self.game_data["players"]:
+        #        if itm["id"] == obj.id:
+        #            break
 
     # General method
     def remove_object(self, arr, id):

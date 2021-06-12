@@ -89,6 +89,7 @@ class Game:
                 Sprites.BuiltInPlayer(self.map.get_new_spawn_position(), ClientSim.keyboard_update, "Keyboard",
                                       mod_force=3, mod_energy=4, mod_dmg=4, mod_dodge=4,
                                       mod_swrd=3, mod_hp=4, mod_spd=4))
+
     def run_lobby(self):
         # Screen values for lobby display
         SCREEN_SIZE = 400, 700
