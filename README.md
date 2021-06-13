@@ -19,7 +19,7 @@ A game made for a coding competition, more info soon.
 
 - [x] Pygame Server:  
   ![100%](https://progress-bar.dev/100)
-- [x] Python/Java/C# clients:  
+- [x] Python/Java/C#/Scala clients:  
   ![100%](https://progress-bar.dev/100)
 
 ### Planned Features
@@ -29,6 +29,7 @@ Additional features in mind:
 ### Collaborators
 - Aleksey Panas
 - Sazzad Ibrahim
+- Ruslan Smirnov (Scala Client)
 
 ### Screenshots:
 - N/A
