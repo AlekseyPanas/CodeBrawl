@@ -90,7 +90,7 @@ class GameDataManager:
             )
 
         else:
-            for itm in self.game_data["players"]:
+            for itm in self.game_data["regular_bullets"]:
                 if itm["id"] == obj.id:
                     itm["location"] = [float(i) for i in obj.pos]
 
@@ -112,7 +112,7 @@ class GameDataManager:
             )
 
         else:
-            for itm in self.game_data["players"]:
+            for itm in self.game_data["highvel_bullets"]:
                 if itm["id"] == obj.id:
                     itm["location"] = [float(i) for i in obj.pos]
 
@@ -122,7 +122,7 @@ class GameDataManager:
         if not obj.added_to_json:
             obj.added_to_json = True
 
-            self.game_data["regular_bullets"].append(
+            self.game_data["missiles"].append(
                 {
                     "id": int(obj.id),
                     "shooter_id": int(obj.shooter.id),
@@ -136,7 +136,7 @@ class GameDataManager:
             )
 
         else:
-            for itm in self.game_data["players"]:
+            for itm in self.game_data["missiles"]:
                 if itm["id"] == obj.id:
                     itm["location"] = [float(i) for i in obj.pos]
                     itm["vector"] = [float(i) for i in obj.vector]
@@ -161,7 +161,7 @@ class GameDataManager:
             )
 
         else:
-            for itm in self.game_data["players"]:
+            for itm in self.game_data["swords"]:
                 if itm["id"] == obj.id:
                     itm["location"] = [float(i) for i in obj.pos]
                     itm["is_blocked"] = obj.cancel_hit
