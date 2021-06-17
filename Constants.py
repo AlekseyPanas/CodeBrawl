@@ -16,6 +16,6 @@ class ServerModes(IntEnum):
 
 
 # Current server mode
-SERVER_MODE = ServerModes.OTHER_TEST_SERVER
+SERVER_MODE = ServerModes.COMPETITION
 
 tick = 0

@@ -39,7 +39,7 @@ def update(game_data):
 
     :param game_data: a large python dictionary containing information about the current game state
     """
-    print(game_data)
+    pass
 
 
 # This Enum class links powerup IDs to their corresponding power up type.
