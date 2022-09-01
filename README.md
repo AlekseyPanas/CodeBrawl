@@ -1,7 +1,7 @@
 # CodeBrawl
 
 ### About
-A game made for a coding competition, more info soon.
+A game developed for Pyunityd game development club. This game offers an arena server where players can battle with code. The players come in the form of customized circles which can shoot various arcade-style weapons or use melee. Each player has a client script where they write AI for their player. Once ready, everyone runs their script, connect to the server, and battle it out!
 
 ### Install Guide
 - Download python 3+ installer from python.org
